@@ -16,7 +16,7 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// The production URL for the application
+// The production URL for the application - always use this for email confirmations
 const PRODUCTION_URL = 'https://yasir-khan-7.github.io/daily-snap-reflector/#';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           // Clear the hash and redirect to signin
           window.history.replaceState(null, '', window.location.pathname);
-          navigate('/auth?tab=signin');
+          navigate('/auth?tab=signin&verification=success');
         } catch (error) {
           console.error('Error handling email confirmation:', error);
         }
@@ -86,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               title: "Email verified",
               description: "Your email has been verified. You can now sign in.",
             });
-            navigate('/auth?tab=signin');
+            navigate('/auth?tab=signin&verification=success');
           }
         }
       }
@@ -106,11 +106,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
 
-      // Determine the redirect URL based on environment
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const redirectTo = isLocalhost
-        ? `${window.location.origin}/auth?tab=signin`
-        : `${PRODUCTION_URL}/auth?tab=signin`;
+      // Always use the production URL for email redirects
+      // This ensures users on both development and production get redirected to the production site
+      const redirectTo = `${PRODUCTION_URL}/auth?tab=signin&verification=pending`;
 
       const { error, data } = await supabase.auth.signUp({
         email,
@@ -129,6 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           title: "Account already exists",
           description: "This email is already registered. Please sign in instead.",
         });
+        setActiveTab('signin');
         return;
       }
 
@@ -139,6 +138,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "Please check your email to verify your account before signing in.",
       });
 
+      // After showing verification message, navigate to signin tab after a short delay
+      setTimeout(() => {
+        setVerificationSent(false);
+        setActiveTab('signin');
+      }, 3000);
+
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -148,6 +153,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper method to set active tab in Auth page
+  const setActiveTab = (tab: string) => {
+    navigate(`/auth?tab=${tab}`);
   };
 
   const signIn = async (email: string, password: string) => {

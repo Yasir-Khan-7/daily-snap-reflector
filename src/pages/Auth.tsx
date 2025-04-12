@@ -15,7 +15,7 @@ const Auth: React.FC = () => {
   const [password, setPassword] = useState('');
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('signin');
-  const [verificationSuccess, setVerificationSuccess] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
 
   useEffect(() => {
     // Set active tab based on URL parameter
@@ -24,10 +24,10 @@ const Auth: React.FC = () => {
       setActiveTab(tab);
     }
 
-    // Check for verification success parameter
-    const verificationStatus = searchParams.get('verification');
-    if (verificationStatus === 'success') {
-      setVerificationSuccess(true);
+    // Check for verification status
+    const status = searchParams.get('verification');
+    if (status) {
+      setVerificationStatus(status);
     }
   }, [searchParams]);
 
@@ -76,12 +76,15 @@ const Auth: React.FC = () => {
                 </p>
               </div>
               <div className="pt-2">
+                <p className="text-sm text-gray-500 mb-3">
+                  Redirecting to the login page in a few seconds...
+                </p>
                 <Button
                   variant="outline"
                   onClick={() => setActiveTab('signin')}
                   className="w-full"
                 >
-                  Return to Login
+                  Go to Login Now
                 </Button>
               </div>
             </CardContent>
@@ -101,11 +104,19 @@ const Auth: React.FC = () => {
                 </CardHeader>
                 <form onSubmit={handleSignIn}>
                   <CardContent className="space-y-4">
-                    {verificationSuccess && (
+                    {verificationStatus === 'success' && (
                       <Alert className="bg-green-50 border-green-200 text-green-800">
                         <CheckCircle className="h-4 w-4 mr-2" />
                         <AlertDescription>
                           Your email has been verified successfully. You can now sign in.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    {verificationStatus === 'pending' && (
+                      <Alert className="bg-amber-50 border-amber-200 text-amber-800">
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                        <AlertDescription>
+                          Please verify your email before signing in.
                         </AlertDescription>
                       </Alert>
                     )}
