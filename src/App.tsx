@@ -15,13 +15,16 @@ import Notes from "./pages/Notes";
 // Create a client
 const queryClient = new QueryClient();
 
+// Get the base URL from the import.meta.env or use a default
+const basename = import.meta.env.BASE_URL;
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter basename={basename}>
           <AuthProvider>
             <Routes>
               <Route path="/" element={<Index />} />
