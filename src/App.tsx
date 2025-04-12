@@ -10,7 +10,6 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import Notes from "./pages/Notes";
-import VerificationSuccess from "./pages/VerificationSuccess";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -26,7 +25,6 @@ function App() {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/verification-success" element={<VerificationSuccess />} />
 
               {/* Protected Routes */}
               <Route element={<ProtectedRoute />}>

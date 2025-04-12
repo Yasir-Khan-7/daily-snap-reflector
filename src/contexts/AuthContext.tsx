@@ -88,15 +88,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             title: "Signed out",
             description: "You've been signed out successfully.",
           });
-        } else if (event === 'USER_UPDATED') {
-          // Handle when user verifies their email
-          if (currentSession?.user.email_confirmed_at) {
-            toast({
-              title: "Email verified",
-              description: "Your email has been verified. You can now sign in.",
-            });
-            navigate('/auth?tab=signin&verification=success');
-          }
         }
       }
     );
@@ -115,19 +106,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
 
-      // Use a special redirect URL with instructions to show verification message
-      // This will prevent users from being redirected to localhost
-      const siteUrl = "https://yasir-khan-7.github.io/daily-snap-reflector";
-      const redirectTo = `${siteUrl}/#/verification-success`;
-
+      // Sign up without email verification
       const { error, data } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          // Skip email verification
+          emailRedirectTo: undefined,
           data: {
-            redirect_app_url: siteUrl
-          },
-          emailRedirectTo: redirectTo
+            email_confirmed: true
+          }
         }
       });
 
@@ -144,15 +132,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      setVerificationSent(true);
-
-      toast({
-        title: "Verification email sent",
-        description: "Please check your email to verify your account before signing in.",
+      // Sign in immediately after signup
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password
       });
 
-      // Don't auto-redirect, just leave the verification message on screen
-      // User will need to manually click to sign in
+      if (signInError) {
+        throw signInError;
+      }
+
+      toast({
+        title: "Account created successfully",
+        description: "Welcome to Daily Snap!",
+      });
+
+      navigate('/dashboard');
 
     } catch (error: any) {
       toast({
