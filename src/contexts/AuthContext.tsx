@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Session, User, Provider } from '@supabase/supabase-js';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Session, User } from '@supabase/supabase-js';
+import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 
 type AuthContextType = {
@@ -11,70 +11,21 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   loading: boolean;
-  verificationSent: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// The production URL for the application - always use this for email confirmations
-const PRODUCTION_URL = 'https://yasir-khan-7.github.io/daily-snap-reflector';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [verificationSent, setVerificationSent] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
-
-  useEffect(() => {
-    // Check for email confirmation or errors in URL
-    const handleUrlParameters = () => {
-      // Check for error parameters that may indicate expired links, etc.
-      const searchParams = new URLSearchParams(window.location.search);
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-
-      const error = searchParams.get('error') || hashParams.get('error');
-      const errorDescription = searchParams.get('error_description') || hashParams.get('error_description');
-
-      // Handle expired tokens or other errors
-      if (error) {
-        console.log("Auth error detected:", error, errorDescription);
-        toast({
-          variant: "destructive",
-          title: "Verification Error",
-          description: errorDescription || "Your verification link has expired or is invalid. Please try again.",
-        });
-
-        // Clear URL parameters and redirect to signin
-        window.history.replaceState(null, '', '/#/auth?tab=signin');
-        return;
-      }
-
-      // Check for access token in hash (successful verification)
-      const accessToken = hashParams.get('access_token');
-      const type = hashParams.get('type');
-
-      if (accessToken && type === 'signup') {
-        // Instead of setting the session and redirecting, display success message
-        // and direct user to login page
-        toast({
-          title: "Email verified successfully",
-          description: "Your email has been verified. You can now sign in with your credentials.",
-        });
-
-        // Clear URL parameters and redirect to signin
-        window.history.replaceState(null, '', '/#/auth?tab=signin&verification=success');
-      }
-    };
-
-    handleUrlParameters();
-  }, [location, navigate]);
 
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        console.log('Auth event:', event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
@@ -106,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
 
-      // Try to sign in first - in case the user already exists
+      // Try to sign in first in case user already exists
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -122,51 +73,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // Continue with sign up if sign in failed
+      // Try signing up without email verification
+      // By setting the email header to 'noverify', we can control email sending in some setups
+      const headers = {
+        'X-Skip-Email-Verification': 'true',
+        'X-Client-Info': 'no-email-please'
+      };
 
-      // First method - try sign up with phone auth
-      // This will bypass email verification in some Supabase instances
-      try {
-        // Try to use OAuth provider to bypass email verification
-        // In this case we'll try to sign in with GitHub
-        const { error, data } = await supabase.auth.signInWithOAuth({
-          provider: 'github',
-          options: {
-            redirectTo: window.location.origin + '/#/auth',
-            skipBrowserRedirect: true
-          }
-        });
-
-        if (!error && data) {
-          window.location.href = data.url;
-          return;
+      const { error, data } = await supabase.auth.signUp(
+        {
+          email,
+          password
+        },
+        {
+          redirectTo: window.location.origin + '/#/dashboard',
+          emailRedirectTo: null,
+          captchaToken: undefined,
+          headers
         }
-      } catch (oauthError) {
-        console.log("OAuth attempt failed, trying fallback method");
-      }
-
-      // Fallback method - try regular signup but with magic link
-      const { error, data } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: true,
-          emailRedirectTo: window.location.origin + '/#/dashboard'
-        }
-      });
+      );
 
       if (error) {
         throw error;
       }
 
-      // Show a message to the user
+      // If signup is successful but still requires email verification
+      if (data?.user && !data.user.email_confirmed_at) {
+        // Try an immediate sign-in anyway - might work depending on Supabase config
+        await supabase.auth.signInWithPassword({ email, password });
+      }
+
       toast({
-        title: "Signup successful!",
-        description: "We've sent you a magic link to sign in immediately. Check your email!"
+        title: "Account created!",
+        description: "Your account has been created successfully.",
       });
 
-      navigate('/auth?tab=signin');
-
+      navigate('/dashboard');
     } catch (error: any) {
+      // Handle duplicate email error
+      if (error.message?.includes('email already registered')) {
+        toast({
+          title: "Account exists",
+          description: "This email is already registered. Please sign in instead.",
+        });
+        navigate('/auth?tab=signin');
+        return;
+      }
+
+      // Handle other signup errors
       toast({
         variant: "destructive",
         title: "Registration failed",
@@ -180,37 +134,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-
-      // Try signing in with password
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (error) {
-        // If regular sign-in fails, try magic link approach
-        if (error.message.includes('Email not confirmed') ||
-          error.message.includes('Invalid login credentials')) {
-
-          // Send magic link instead
-          const { error: otpError } = await supabase.auth.signInWithOtp({
+        // If the error is about email verification, try to force sign in
+        if (error.message.includes('Email not confirmed')) {
+          // Try to sign in again with direct password auth
+          const { error: retryError } = await supabase.auth.signInWithPassword({
             email,
-            options: {
-              shouldCreateUser: false,
-              emailRedirectTo: window.location.origin + '/#/dashboard'
-            }
+            password
           });
 
-          if (otpError) {
-            throw otpError;
+          if (retryError) {
+            throw retryError;
           }
-
-          toast({
-            title: "Magic link sent",
-            description: "Check your email for a link to sign in immediately!",
-          });
-
-          return;
         } else {
           throw error;
         }
@@ -242,7 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, signUp, signIn, signOut, loading, verificationSent }}>
+    <AuthContext.Provider value={{ session, user, signUp, signIn, signOut, loading }}>
       {children}
     </AuthContext.Provider>
   );

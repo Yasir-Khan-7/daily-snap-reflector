@@ -6,8 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Mail, Info } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2 } from 'lucide-react';
 
 const Auth: React.FC = () => {
   const { user, signUp, signIn, loading } = useAuth();
@@ -62,12 +61,6 @@ const Auth: React.FC = () => {
               </CardHeader>
               <form onSubmit={handleSignIn}>
                 <CardContent className="space-y-4">
-                  <Alert className="bg-blue-50 border-blue-200 text-blue-800">
-                    <Info className="h-4 w-4 mr-2" />
-                    <AlertDescription>
-                      If you can't sign in with password, we'll send you a magic link to your email.
-                    </AlertDescription>
-                  </Alert>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
@@ -108,12 +101,6 @@ const Auth: React.FC = () => {
               </CardHeader>
               <form onSubmit={handleSignUp}>
                 <CardContent className="space-y-4">
-                  <Alert className="bg-purple-50 border-purple-200 text-purple-800">
-                    <Mail className="h-4 w-4 mr-2" />
-                    <AlertDescription>
-                      We'll send you a magic link to your email for instant access.
-                    </AlertDescription>
-                  </Alert>
                   <div className="space-y-2">
                     <Label htmlFor="new-email">Email</Label>
                     <Input
