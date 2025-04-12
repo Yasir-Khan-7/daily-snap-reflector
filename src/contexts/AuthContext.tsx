@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 
 type AuthContextType = {
@@ -16,12 +16,51 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// The production URL for the application
+const PRODUCTION_URL = 'https://yasir-khan-7.github.io/daily-snap-reflector';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [verificationSent, setVerificationSent] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Check for email confirmation success in URL
+    const handleEmailConfirmation = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const type = hashParams.get('type');
+      
+      if (type === 'signup' && accessToken) {
+        try {
+          // Set the session with the tokens from URL
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || '',
+          });
+          
+          if (error) throw error;
+          
+          toast({
+            title: "Email verified successfully",
+            description: "You can now sign in with your credentials.",
+          });
+          
+          // Clear the hash and redirect to signin
+          window.history.replaceState(null, '', window.location.pathname);
+          navigate('/auth?tab=signin');
+        } catch (error) {
+          console.error('Error handling email confirmation:', error);
+        }
+      }
+    };
+    
+    handleEmailConfirmation();
+  }, [location, navigate]);
 
   useEffect(() => {
     // Set up auth state listener
@@ -47,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               title: "Email verified",
               description: "Your email has been verified. You can now sign in.",
             });
-            navigate('/auth');
+            navigate('/auth?tab=signin');
           }
         }
       }
@@ -66,11 +105,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string) => {
     try {
       setLoading(true);
+      
+      // Determine the redirect URL based on environment
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const redirectTo = isLocalhost 
+        ? `${window.location.origin}/auth?tab=signin` 
+        : `${PRODUCTION_URL}/auth?tab=signin`;
+      
       const { error, data } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: window.location.origin + '/auth'
+          emailRedirectTo: redirectTo
         }
       });
 

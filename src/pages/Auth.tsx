@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Mail, CheckCircle } from 'lucide-react';
+import { Loader2, Mail, CheckCircle, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Auth: React.FC = () => {
@@ -15,12 +15,19 @@ const Auth: React.FC = () => {
   const [password, setPassword] = useState('');
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('signin');
+  const [verificationSuccess, setVerificationSuccess] = useState(false);
 
   useEffect(() => {
     // Set active tab based on URL parameter
     const tab = searchParams.get('tab');
     if (tab === 'signin' || tab === 'signup') {
       setActiveTab(tab);
+    }
+
+    // Check for verification success parameter
+    const verificationStatus = searchParams.get('verification');
+    if (verificationStatus === 'success') {
+      setVerificationSuccess(true);
     }
   }, [searchParams]);
 
@@ -94,6 +101,14 @@ const Auth: React.FC = () => {
                 </CardHeader>
                 <form onSubmit={handleSignIn}>
                   <CardContent className="space-y-4">
+                    {verificationSuccess && (
+                      <Alert className="bg-green-50 border-green-200 text-green-800">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        <AlertDescription>
+                          Your email has been verified successfully. You can now sign in.
+                        </AlertDescription>
+                      </Alert>
+                    )}
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
                       <Input
@@ -135,6 +150,7 @@ const Auth: React.FC = () => {
                 <form onSubmit={handleSignUp}>
                   <CardContent className="space-y-4">
                     <Alert className="bg-blue-50 border-blue-200 text-blue-800">
+                      <AlertCircle className="h-4 w-4 mr-2" />
                       <AlertDescription>
                         After signup, you'll need to verify your email before logging in.
                       </AlertDescription>
