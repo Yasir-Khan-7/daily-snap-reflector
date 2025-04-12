@@ -3,56 +3,8 @@ import { toast } from '@/hooks/use-toast';
 
 type AIAction = 'summarize' | 'enhance' | 'categorize' | 'suggest' | string;
 
-// Mock responses for different AI actions
-const mockResponses: Record<string, (content: string) => string> = {
-  summarize: (content) => {
-    // Simple summarization logic - return first sentence and/or truncate
-    const firstSentence = content.split(/[.!?]/)[0];
-    return `${firstSentence}. This is a summary of your note.`;
-  },
-  enhance: (content) => {
-    // Add some "enhanced" styling and structure to the content
-    return `${content}\n\nEnhanced with better clarity and structure.`;
-  },
-  categorize: (content) => {
-    // Extract potential tags based on content keywords
-    const commonTags = ['important', 'todo', 'idea', 'work', 'personal'];
-    const contentLower = content.toLowerCase();
-
-    // Simple keyword matching to suggest relevant tags
-    const suggestedTags = commonTags.filter(tag =>
-      contentLower.includes(tag) || Math.random() > 0.7 // randomly include some tags
-    );
-
-    // Add some default tags if none matched
-    if (suggestedTags.length === 0) {
-      suggestedTags.push('note', 'general');
-    }
-
-    return suggestedTags.join(', ');
-  },
-  suggest: (content) => {
-    // Suggest next steps based on content
-    const suggestions = [
-      "Consider breaking this down into smaller tasks",
-      "Set a deadline for this item",
-      "Share this with your team",
-      "Follow up on this tomorrow",
-      "Create a reminder for this task"
-    ];
-
-    // Return 2-3 random suggestions
-    const randomSuggestions = [];
-    for (let i = 0; i < 2 + Math.floor(Math.random()); i++) {
-      const randomIndex = Math.floor(Math.random() * suggestions.length);
-      randomSuggestions.push(suggestions[randomIndex]);
-      suggestions.splice(randomIndex, 1);
-      if (suggestions.length === 0) break;
-    }
-
-    return `Next steps:\n${randomSuggestions.map(s => `- ${s}`).join('\n')}`;
-  }
-};
+// Groq API key for AI processing
+const GROQ_API_KEY = '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';
 
 export function useAIAssistant() {
   const [loading, setLoading] = useState(false);
@@ -70,16 +22,60 @@ export function useAIAssistant() {
         throw new Error("Content is too short for AI processing");
       }
 
-      // Add artificial delay to simulate processing
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      let prompt = "";
 
-      // Process using mock responses instead of calling API
-      const mockResponseFn = mockResponses[action] || mockResponses.suggest;
-      const response = mockResponseFn(content);
+      switch (action) {
+        case 'summarize':
+          prompt = `Summarize the following note in 2-3 sentences: "${content}"`;
+          break;
+        case 'enhance':
+          prompt = `Improve the writing and clarity of the following note, maintaining its original meaning: "${content}"`;
+          break;
+        case 'categorize':
+          prompt = `Suggest 3-5 relevant tags for categorizing this note (just the tags, comma separated): "${content}"`;
+          break;
+        case 'suggest':
+          prompt = `Based on this note: "${content}", suggest 2-3 actionable next steps or related ideas. Format as bullet points.`;
+          break;
+        default:
+          prompt = `${action}: ${content}`;
+      }
+
+      // Call Groq API
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${GROQ_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'llama3-8b-8192',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful AI assistant for a notes application called Daily Snap. Your responses should be concise, relevant, and helpful for organizing and improving the user\'s notes.',
+            },
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 200,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Failed to process with AI');
+      }
+
+      const data = await response.json();
+      const result = data.choices[0]?.message?.content || 'No response generated';
 
       console.log(`AI processing completed for ${action}`);
       setLoading(false);
-      return response;
+      return result;
     } catch (error: any) {
       console.error("AI processing error:", error);
       setLoading(false);

@@ -80,7 +80,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ content, onApply, onAddTags }
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center gap-2">
               <Brain className="w-4 h-4 text-purple-500" />
-              AI Assistant
+              Groq AI Assistant
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 py-0">
@@ -153,7 +153,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ content, onApply, onAddTags }
                 </TabsContent>
                 <TabsContent value="explain">
                   <div className="space-y-2 text-sm text-muted-foreground mb-4">
-                    <p>Daily Snap's AI assistant helps you organize and improve your notes:</p>
+                    <p>Daily Snap's AI assistant helps you organize and improve your notes using Groq's powerful AI:</p>
                     <ul className="list-disc pl-5 space-y-1">
                       <li>Summarize long content</li>
                       <li>Enhance writing quality</li>
@@ -161,8 +161,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ content, onApply, onAddTags }
                       <li>Suggest next actions</li>
                     </ul>
                     <div className="flex items-center gap-2 mt-4 pt-2 border-t border-gray-100">
-                      <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-md">No API key required</span>
-                      <span className="text-xs">Works offline</span>
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md">Powered by Groq AI</span>
                     </div>
                   </div>
                 </TabsContent>
@@ -172,7 +171,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ content, onApply, onAddTags }
             {loading && (
               <div className="flex flex-col items-center justify-center py-8 space-y-3">
                 <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
-                <p className="text-sm text-gray-500">Processing with AI...</p>
+                <p className="text-sm text-gray-500">Processing with Groq AI...</p>
               </div>
             )}
 

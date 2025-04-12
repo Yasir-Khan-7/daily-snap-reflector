@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -12,6 +11,7 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   loading: boolean;
+  verificationSent: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,6 +20,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [verificationSent, setVerificationSent] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,7 +29,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (event, currentSession) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
-        
+
         if (event === 'SIGNED_IN') {
           toast({
             title: "Welcome!",
@@ -39,6 +40,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             title: "Signed out",
             description: "You've been signed out successfully.",
           });
+        } else if (event === 'USER_UPDATED') {
+          // Handle when user verifies their email
+          if (currentSession?.user.email_confirmed_at) {
+            toast({
+              title: "Email verified",
+              description: "Your email has been verified. You can now sign in.",
+            });
+            navigate('/auth');
+          }
         }
       }
     );
@@ -51,23 +61,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const signUp = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signUp({ email, password });
-      
+      const { error, data } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin + '/auth'
+        }
+      });
+
       if (error) {
         throw error;
       }
-      
+
+      if (data?.user?.identities?.length === 0) {
+        toast({
+          title: "Account already exists",
+          description: "This email is already registered. Please sign in instead.",
+        });
+        return;
+      }
+
+      setVerificationSent(true);
+
       toast({
-        title: "Account created",
-        description: "Please check your email to confirm your account.",
+        title: "Verification email sent",
+        description: "Please check your email to verify your account before signing in.",
       });
-      
-      navigate('/');
+
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -83,11 +108,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      
+
       if (error) {
         throw error;
       }
-      
+
       navigate('/dashboard');
     } catch (error: any) {
       toast({
@@ -114,7 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, signUp, signIn, signOut, loading }}>
+    <AuthContext.Provider value={{ session, user, signUp, signIn, signOut, loading, verificationSent }}>
       {children}
     </AuthContext.Provider>
   );

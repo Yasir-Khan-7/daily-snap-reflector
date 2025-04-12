@@ -7,7 +7,6 @@ import {
   User,
   Home,
   BarChart3,
-  Settings,
   Menu,
   X,
   FileText,
