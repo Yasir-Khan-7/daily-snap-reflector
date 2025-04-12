@@ -117,12 +117,14 @@ const Analytics: React.FC<AnalyticsProps> = ({ notes }) => {
                         <div className="flex items-center justify-between">
                             <div className="flex items-center">
                                 <CheckSquare className="h-8 w-8 text-green-500 mr-3" />
-                                <span className="text-3xl font-bold">{stats.completedTasks}</span>
-                                <span className="text-sm text-gray-500 ml-2">completed</span>
+                                <div className="flex flex-col">
+                                    <span className="text-3xl font-bold">{stats.completedTasks}</span>
+                                    <span className="text-xs text-gray-500">completed</span>
+                                </div>
                             </div>
-                            <div className="flex items-center">
+                            <div className="flex flex-col items-end">
                                 <span className="text-3xl font-bold">{stats.pendingTasks}</span>
-                                <span className="text-sm text-gray-500 ml-2">pending</span>
+                                <span className="text-xs text-gray-500">pending</span>
                             </div>
                         </div>
                     </CardContent>
