@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import AIAssistant from '@/components/AIAssistant';
 
 interface NoteInputProps {
   onAddNote: (note: Note) => void;
@@ -18,6 +19,7 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
   const [type, setType] = useState<NoteType>('text');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAddNote = () => {
@@ -28,12 +30,14 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
         type,
         createdAt: new Date(),
         completed: type === 'task' ? false : undefined,
-        imageUrl: imagePreview || undefined
+        imageUrl: imagePreview || undefined,
+        tags: tags.length > 0 ? tags : undefined
       };
       onAddNote(newNote);
       setContent('');
       setImageFile(null);
       setImagePreview(null);
+      setTags([]);
     }
   };
 
@@ -58,6 +62,14 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
+  };
+
+  const handleApplyAIContent = (aiContent: string) => {
+    setContent(aiContent);
+  };
+
+  const handleAddTags = (newTags: string[]) => {
+    setTags([...new Set([...tags, ...newTags])]);
   };
 
   const noteTypeIcons = {
@@ -114,21 +126,27 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
           </TabsContent>
           
           <TabsContent value="text">
-            <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="What's on your mind?"
-              className="min-h-[120px] resize-none"
-            />
+            <div className="space-y-3">
+              <Textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="What's on your mind?"
+                className="min-h-[120px] resize-none"
+              />
+              {content && type === 'text' && <AIAssistant content={content} onApply={handleApplyAIContent} onAddTags={handleAddTags} />}
+            </div>
           </TabsContent>
           
           <TabsContent value="task">
-            <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="What needs to be done?"
-              className="min-h-[120px] resize-none"
-            />
+            <div className="space-y-3">
+              <Textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="What needs to be done?"
+                className="min-h-[120px] resize-none"
+              />
+              {content && type === 'task' && <AIAssistant content={content} onApply={handleApplyAIContent} onAddTags={handleAddTags} />}
+            </div>
           </TabsContent>
           
           <TabsContent value="link">
@@ -145,6 +163,16 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
             />
           </TabsContent>
         </Tabs>
+
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-4">
+            {tags.map((tag, index) => (
+              <span key={index} className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="flex justify-end mt-6">
           <Button 

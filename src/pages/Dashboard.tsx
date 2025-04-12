@@ -9,12 +9,18 @@ import { Note } from '@/types/Note';
 import { Layout } from '@/components/ui/layout';
 import { toast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [notes, setNotes] = useState<Note[]>([]);
   const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTags, setActiveTags] = useState<string[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchNotes = async () => {
@@ -42,6 +48,15 @@ const Dashboard: React.FC = () => {
         
         setNotes(formattedNotes);
         setFilteredNotes(formattedNotes);
+        
+        // Extract all unique tags
+        const tagsSet = new Set<string>();
+        formattedNotes.forEach(note => {
+          if (note.tags) {
+            note.tags.forEach(tag => tagsSet.add(tag));
+          }
+        });
+        setAllTags(Array.from(tagsSet));
       } catch (error: any) {
         toast({
           variant: "destructive", 
@@ -55,6 +70,27 @@ const Dashboard: React.FC = () => {
 
     fetchNotes();
   }, [user]);
+
+  useEffect(() => {
+    // Apply both search and tag filters
+    let filtered = notes;
+    
+    // Apply search filter
+    if (searchQuery.trim() !== '') {
+      filtered = filtered.filter(note => 
+        note.content.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    // Apply tag filter
+    if (activeTags.length > 0) {
+      filtered = filtered.filter(note => 
+        note.tags && activeTags.some(tag => note.tags!.includes(tag))
+      );
+    }
+    
+    setFilteredNotes(filtered);
+  }, [searchQuery, activeTags, notes]);
 
   const handleAddNote = async (newNote: Note) => {
     if (!user) return;
@@ -79,7 +115,17 @@ const Dashboard: React.FC = () => {
       
       const updatedNotes = [newNote, ...notes];
       setNotes(updatedNotes);
-      setFilteredNotes(updatedNotes);
+      
+      // Update all tags
+      if (newNote.tags && newNote.tags.length > 0) {
+        const updatedTags = [...allTags];
+        newNote.tags.forEach(tag => {
+          if (!updatedTags.includes(tag)) {
+            updatedTags.push(tag);
+          }
+        });
+        setAllTags(updatedTags);
+      }
       
       toast({
         title: "Success",
@@ -166,15 +212,20 @@ const Dashboard: React.FC = () => {
   };
 
   const handleSearch = (query: string) => {
-    if (query.trim() === '') {
-      setFilteredNotes(notes);
-      return;
-    }
-    
-    const filtered = notes.filter(note => 
-      note.content.toLowerCase().includes(query.toLowerCase())
+    setSearchQuery(query);
+  };
+
+  const toggleTag = (tag: string) => {
+    setActiveTags(currentTags => 
+      currentTags.includes(tag)
+        ? currentTags.filter(t => t !== tag)
+        : [...currentTags, tag]
     );
-    setFilteredNotes(filtered);
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setActiveTags([]);
   };
 
   return (
@@ -188,6 +239,34 @@ const Dashboard: React.FC = () => {
         <div className="mb-6">
           <SearchBar onSearch={handleSearch} />
         </div>
+
+        {allTags.length > 0 && (
+          <div className="mb-6">
+            <div className="text-sm text-gray-500 mb-2">Filter by tags:</div>
+            <div className="flex flex-wrap gap-2">
+              {allTags.map(tag => (
+                <Badge 
+                  key={tag}
+                  variant={activeTags.includes(tag) ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => toggleTag(tag)}
+                >
+                  {tag}
+                </Badge>
+              ))}
+              {(activeTags.length > 0 || searchQuery) && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={clearFilters}
+                  className="text-xs flex items-center gap-1"
+                >
+                  <X size={14} /> Clear filters
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="mb-8">
           <NoteInput onAddNote={handleAddNote} />

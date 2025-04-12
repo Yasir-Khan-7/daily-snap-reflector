@@ -1,1 +1,5 @@
+
 project_id = "pombpsabgvzowgmwruxu"
+
+[functions.ai-assistant]
+verify_jwt = true
