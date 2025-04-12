@@ -17,7 +17,7 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // The production URL for the application - always use this for email confirmations
-const PRODUCTION_URL = 'https://yasir-khan-7.github.io/daily-snap-reflector/#';
+const PRODUCTION_URL = 'https://yasir-khan-7.github.io/daily-snap-reflector';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -28,38 +28,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const location = useLocation();
 
   useEffect(() => {
-    // Check for email confirmation success in URL
-    const handleEmailConfirmation = async () => {
+    // Check for email confirmation or errors in URL
+    const handleUrlParameters = () => {
+      // Check for error parameters that may indicate expired links, etc.
+      const searchParams = new URLSearchParams(window.location.search);
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
+
+      const error = searchParams.get('error') || hashParams.get('error');
+      const errorDescription = searchParams.get('error_description') || hashParams.get('error_description');
+
+      // Handle expired tokens or other errors
+      if (error) {
+        console.log("Auth error detected:", error, errorDescription);
+        toast({
+          variant: "destructive",
+          title: "Verification Error",
+          description: errorDescription || "Your verification link has expired or is invalid. Please try again.",
+        });
+
+        // Clear URL parameters
+        window.history.replaceState(null, '', '/#/auth?tab=signin');
+        return;
+      }
+
+      // Check for access token in hash (successful verification)
       const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
       const type = hashParams.get('type');
 
-      if (type === 'signup' && accessToken) {
-        try {
-          // Set the session with the tokens from URL
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken || '',
-          });
+      if (accessToken && type === 'signup') {
+        toast({
+          title: "Email verified successfully",
+          description: "You can now sign in with your credentials.",
+        });
 
-          if (error) throw error;
-
-          toast({
-            title: "Email verified successfully",
-            description: "You can now sign in with your credentials.",
-          });
-
-          // Clear the hash and redirect to signin
-          window.history.replaceState(null, '', window.location.pathname);
-          navigate('/auth?tab=signin&verification=success');
-        } catch (error) {
-          console.error('Error handling email confirmation:', error);
-        }
+        // Clear URL parameters and redirect to signin
+        window.history.replaceState(null, '', '/#/auth?tab=signin&verification=success');
       }
     };
 
-    handleEmailConfirmation();
+    handleUrlParameters();
   }, [location, navigate]);
 
   useEffect(() => {
@@ -106,9 +113,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
 
-      // Always use the production URL for email redirects
-      // This ensures users on both development and production get redirected to the production site
-      const redirectTo = `${PRODUCTION_URL}/auth?tab=signin&verification=pending`;
+      // Keep the redirect URL very simple to avoid issues with complex parameters
+      const redirectTo = PRODUCTION_URL;
 
       const { error, data } = await supabase.auth.signUp({
         email,
@@ -127,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           title: "Account already exists",
           description: "This email is already registered. Please sign in instead.",
         });
-        setActiveTab('signin');
+        navigate('/auth?tab=signin');
         return;
       }
 
@@ -141,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // After showing verification message, navigate to signin tab after a short delay
       setTimeout(() => {
         setVerificationSent(false);
-        setActiveTab('signin');
+        navigate('/auth?tab=signin&verification=pending');
       }, 3000);
 
     } catch (error: any) {
@@ -153,11 +159,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setLoading(false);
     }
-  };
-
-  // Helper method to set active tab in Auth page
-  const setActiveTab = (tab: string) => {
-    navigate(`/auth?tab=${tab}`);
   };
 
   const signIn = async (email: string, password: string) => {

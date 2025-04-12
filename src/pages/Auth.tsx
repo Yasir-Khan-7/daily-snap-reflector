@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Mail, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Mail, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Auth: React.FC = () => {
@@ -16,6 +16,7 @@ const Auth: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('signin');
   const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Set active tab based on URL parameter
@@ -46,6 +47,12 @@ const Auth: React.FC = () => {
     signUp(email, password);
   };
 
+  // Function to handle manual tab navigation
+  const goToSignIn = () => {
+    setActiveTab('signin');
+    navigate('/auth?tab=signin');
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-purple-50 to-white p-4">
       <div className="w-full max-w-md">
@@ -55,8 +62,8 @@ const Auth: React.FC = () => {
         </div>
 
         {verificationSent ? (
-          <Card>
-            <CardHeader>
+          <Card className="border-purple-200 shadow-md">
+            <CardHeader className="bg-purple-50 rounded-t-lg">
               <CardTitle className="flex items-center justify-center">
                 <Mail className="mr-2 h-6 w-6 text-purple-500" />
                 Verify Your Email
@@ -65,26 +72,32 @@ const Auth: React.FC = () => {
                 We've sent a verification email to <strong>{email}</strong>
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 text-center">
+            <CardContent className="space-y-4 text-center pt-6">
+              <Alert className="bg-blue-50 border-blue-200 text-blue-800">
+                <AlertCircle className="h-4 w-4 mr-2" />
+                <AlertDescription>
+                  Please check your inbox (and spam folder) for the verification email.
+                </AlertDescription>
+              </Alert>
+
               <div className="bg-purple-50 rounded-lg p-6 flex flex-col items-center">
                 <CheckCircle className="h-12 w-12 text-purple-500 mb-3" />
                 <p className="text-sm text-gray-700">
-                  Please check your inbox and click the verification link to complete your registration.
-                </p>
-                <p className="text-xs text-gray-500 mt-2">
-                  After verification, you'll be redirected to the login page.
+                  After clicking the verification link, you'll be able to sign in to your account.
                 </p>
               </div>
+
               <div className="pt-2">
                 <p className="text-sm text-gray-500 mb-3">
-                  Redirecting to the login page in a few seconds...
+                  Redirecting to login in a moment...
                 </p>
                 <Button
-                  variant="outline"
-                  onClick={() => setActiveTab('signin')}
-                  className="w-full"
+                  variant="default"
+                  onClick={goToSignIn}
+                  className="w-full gap-2"
                 >
                   Go to Login Now
+                  <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
             </CardContent>
@@ -97,7 +110,7 @@ const Auth: React.FC = () => {
             </TabsList>
 
             <TabsContent value="signin">
-              <Card>
+              <Card className="border-blue-100 shadow-sm">
                 <CardHeader>
                   <CardTitle>Welcome back</CardTitle>
                   <CardDescription>Sign in to access your notes</CardDescription>
@@ -116,7 +129,7 @@ const Auth: React.FC = () => {
                       <Alert className="bg-amber-50 border-amber-200 text-amber-800">
                         <AlertCircle className="h-4 w-4 mr-2" />
                         <AlertDescription>
-                          Please verify your email before signing in.
+                          Please check your email and verify your account before signing in.
                         </AlertDescription>
                       </Alert>
                     )}
@@ -153,7 +166,7 @@ const Auth: React.FC = () => {
             </TabsContent>
 
             <TabsContent value="signup">
-              <Card>
+              <Card className="border-purple-100 shadow-sm">
                 <CardHeader>
                   <CardTitle>Create an account</CardTitle>
                   <CardDescription>Get started with Daily Snap</CardDescription>
