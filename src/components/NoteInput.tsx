@@ -1,6 +1,5 @@
-
 import React, { useState, useRef } from 'react';
-import { Plus, Image, FileText, CheckSquare, Link as LinkIcon } from 'lucide-react';
+import { Plus, Image, FileText, CheckSquare, Link as LinkIcon, Tag, X } from 'lucide-react';
 import { Note, NoteType } from '@/types/Note';
 import { v4 as uuidv4 } from 'uuid';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import AIAssistant from '@/components/AIAssistant';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 
 interface NoteInputProps {
   onAddNote: (note: Note) => void;
@@ -20,6 +20,7 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAddNote = () => {
@@ -38,6 +39,7 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
       setImageFile(null);
       setImagePreview(null);
       setTags([]);
+      setTagInput('');
     }
   };
 
@@ -46,7 +48,7 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
     if (files && files.length > 0) {
       const file = files[0];
       setImageFile(file);
-      
+
       // Create preview URL
       const fileReader = new FileReader();
       fileReader.onload = (e) => {
@@ -64,12 +66,18 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
     }
   };
 
-  const handleApplyAIContent = (aiContent: string) => {
-    setContent(aiContent);
+  const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && tagInput.trim()) {
+      e.preventDefault();
+      if (!tags.includes(tagInput.trim())) {
+        setTags([...tags, tagInput.trim()]);
+      }
+      setTagInput('');
+    }
   };
 
-  const handleAddTags = (newTags: string[]) => {
-    setTags([...new Set([...tags, ...newTags])]);
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
   const noteTypeIcons = {
@@ -82,10 +90,10 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
   return (
     <Card className="border-gray-200">
       <CardContent className="pt-6">
-        <Tabs 
-          defaultValue="text" 
-          value={type} 
-          onValueChange={(value) => setType(value as NoteType)} 
+        <Tabs
+          defaultValue="text"
+          value={type}
+          onValueChange={(value) => setType(value as NoteType)}
           className="w-full"
         >
           <TabsList className="grid grid-cols-4 mb-6">
@@ -106,7 +114,7 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
                 accept="image/*"
                 className="hidden"
               />
-              <div 
+              <div
                 onClick={triggerFileInput}
                 className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-purple-400 transition-colors"
               >
@@ -115,16 +123,16 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
               </div>
               {imagePreview && (
                 <div className="mt-2">
-                  <img 
-                    src={imagePreview} 
-                    alt="Preview" 
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
                     className="max-h-48 rounded-md mx-auto"
                   />
                 </div>
               )}
             </div>
           </TabsContent>
-          
+
           <TabsContent value="text">
             <div className="space-y-3">
               <Textarea
@@ -133,10 +141,9 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
                 placeholder="What's on your mind?"
                 className="min-h-[120px] resize-none"
               />
-              {content && type === 'text' && <AIAssistant content={content} onApply={handleApplyAIContent} onAddTags={handleAddTags} />}
             </div>
           </TabsContent>
-          
+
           <TabsContent value="task">
             <div className="space-y-3">
               <Textarea
@@ -145,10 +152,9 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
                 placeholder="What needs to be done?"
                 className="min-h-[120px] resize-none"
               />
-              {content && type === 'task' && <AIAssistant content={content} onApply={handleApplyAIContent} onAddTags={handleAddTags} />}
             </div>
           </TabsContent>
-          
+
           <TabsContent value="link">
             <Input
               value={content}
@@ -164,18 +170,41 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
           </TabsContent>
         </Tabs>
 
-        {tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-4">
-            {tags.map((tag, index) => (
-              <span key={index} className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
-                #{tag}
-              </span>
-            ))}
+        <div className="mt-4 space-y-3">
+          <div className="flex items-center">
+            <Label htmlFor="tag-input" className="flex items-center mr-2 text-sm font-medium">
+              <Tag className="h-4 w-4 mr-1" />
+              Tags:
+            </Label>
+            <Input
+              id="tag-input"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={handleAddTag}
+              placeholder="Add tags (press Enter)"
+              className="flex-grow"
+            />
           </div>
-        )}
+
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {tags.map((tag, index) => (
+                <Badge key={index} variant="secondary" className="flex items-center gap-1 bg-purple-100 text-purple-800 hover:bg-purple-200">
+                  #{tag}
+                  <button
+                    onClick={() => handleRemoveTag(tag)}
+                    className="ml-1 rounded-full p-0.5 focus:outline-none"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="flex justify-end mt-6">
-          <Button 
+          <Button
             onClick={handleAddNote}
             disabled={type === 'image' ? !imageFile : !content.trim()}
             className="gap-2"

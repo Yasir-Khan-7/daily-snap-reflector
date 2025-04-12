@@ -9,8 +9,7 @@ import {
   BarChart3,
   Menu,
   X,
-  FileText,
-  Sparkles
+  FileText
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -77,11 +76,6 @@ export const Header: React.FC = () => {
         {/* Actions */}
         <div className="flex items-center gap-4">
           <div className="hidden md:flex items-center gap-4">
-            <Button variant="outline" size="sm" className="gap-2 bg-gradient-to-r from-amber-50 to-yellow-50 border-yellow-200 hover:from-amber-100 hover:to-yellow-100">
-              <Sparkles className="h-4 w-4 text-amber-500" />
-              <span className="text-amber-700">Ask AI</span>
-            </Button>
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 bg-purple-50">

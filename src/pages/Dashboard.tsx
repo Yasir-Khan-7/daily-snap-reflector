@@ -11,7 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { X, BarChart3, FileText, CalendarClock, ListTodo } from 'lucide-react';
+import { X, BarChart3, FileText, CalendarClock, ListTodo, Plus, Filter } from 'lucide-react';
 import TabView from '@/components/ui/tabs-view';
 import PomodoroTimer from '@/components/PomodoroTimer';
 import HabitTracker from '@/components/HabitTracker';
@@ -233,14 +233,41 @@ const Dashboard: React.FC = () => {
 
   // Define tab content components
   const NotesTabContent = () => (
-    <>
-      <div className="mb-6">
-        <SearchBar onSearch={handleSearch} />
+    <div className="container mx-auto max-w-5xl px-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div className="w-full md:w-2/3">
+          <SearchBar onSearch={handleSearch} />
+        </div>
+
+        {allTags.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1"
+              onClick={() => document.getElementById('tags-filter')?.classList.toggle('hidden')}
+            >
+              <Filter className="h-4 w-4" />
+              Filter by Tags
+            </Button>
+
+            {(activeTags.length > 0 || searchQuery) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="text-xs flex items-center gap-1"
+              >
+                <X size={14} /> Clear
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
-      {allTags.length > 0 && (
-        <div className="mb-6">
-          <div className="text-sm text-gray-500 mb-2">Filter by tags:</div>
+      <div id="tags-filter" className="mb-6 hidden">
+        <div className="p-4 bg-gray-50 rounded-lg border">
+          <h3 className="text-sm font-medium mb-3">Available Tags:</h3>
           <div className="flex flex-wrap gap-2">
             {allTags.map(tag => (
               <Badge
@@ -252,19 +279,9 @@ const Dashboard: React.FC = () => {
                 {tag}
               </Badge>
             ))}
-            {(activeTags.length > 0 || searchQuery) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="text-xs flex items-center gap-1"
-              >
-                <X size={14} /> Clear filters
-              </Button>
-            )}
           </div>
         </div>
-      )}
+      </div>
 
       <div className="mb-8">
         <NoteInput onAddNote={handleAddNote} />
@@ -281,11 +298,15 @@ const Dashboard: React.FC = () => {
           onToggleTask={handleToggleTask}
         />
       ) : (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
+        <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
           <p className="text-gray-600">No notes found. Add your first note above!</p>
+          <Button variant="outline" className="mt-4 gap-2" onClick={() => document.getElementById('tag-input')?.focus()}>
+            <Plus size={16} />
+            Add Note
+          </Button>
         </div>
       )}
-    </>
+    </div>
   );
 
   // Define the tabs configuration
@@ -307,14 +328,20 @@ const Dashboard: React.FC = () => {
       label: 'Productivity',
       icon: <CalendarClock className="h-4 w-4" />,
       content: (
-        <div className="py-4 space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div>
-              <h2 className="text-lg font-medium mb-4">Pomodoro Timer</h2>
+        <div className="container mx-auto max-w-6xl px-4 py-6">
+          <div className="grid gap-8 md:grid-cols-2">
+            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+              <h2 className="text-xl font-medium mb-4 text-gray-800 flex items-center gap-2">
+                <CalendarClock className="h-5 w-5 text-purple-500" />
+                Pomodoro Timer
+              </h2>
               <PomodoroTimer />
             </div>
-            <div>
-              <h2 className="text-lg font-medium mb-4">Habit Tracker</h2>
+            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+              <h2 className="text-xl font-medium mb-4 text-gray-800 flex items-center gap-2">
+                <ListTodo className="h-5 w-5 text-green-500" />
+                Habit Tracker
+              </h2>
               <HabitTracker />
             </div>
           </div>
@@ -326,16 +353,35 @@ const Dashboard: React.FC = () => {
       label: 'Tasks',
       icon: <ListTodo className="h-4 w-4" />,
       content: (
-        <div className="py-4">
-          <h2 className="text-lg font-semibold mb-4">Task Manager</h2>
+        <div className="container mx-auto max-w-5xl px-4 py-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+              <ListTodo className="h-5 w-5 text-green-500" />
+              Task Manager
+            </h2>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                {notes.filter(note => note.type === 'task' && note.completed).length} Completed
+              </Badge>
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                {notes.filter(note => note.type === 'task' && !note.completed).length} Pending
+              </Badge>
+            </div>
+          </div>
+
           <NoteList
             notes={notes.filter(note => note.type === 'task')}
             onDeleteNote={handleDeleteNote}
             onToggleTask={handleToggleTask}
           />
+
           {notes.filter(note => note.type === 'task').length === 0 && (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
+            <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
               <p className="text-gray-600">No tasks found. Create a new task using the Notes tab.</p>
+              <Button variant="outline" className="mt-4 gap-2" onClick={() => document.getElementById('tasks-tab')?.click()}>
+                <Plus size={16} />
+                Add Task
+              </Button>
             </div>
           )}
         </div>
@@ -345,12 +391,14 @@ const Dashboard: React.FC = () => {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto py-6">
-        <div className="mb-6 px-4">
+      <div className="bg-gradient-to-b from-purple-50 to-transparent pt-8 pb-4">
+        <div className="container mx-auto max-w-6xl px-4">
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Manage and analyze your daily notes and tasks</p>
+          <p className="text-gray-600 mt-1">Manage and analyze your notes, tasks, and productivity</p>
         </div>
+      </div>
 
+      <div className="container mx-auto max-w-6xl py-4">
         <TabView tabs={dashboardTabs} defaultValue="analytics" />
       </div>
     </Layout>
