@@ -106,16 +106,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
 
-      // Sign up without email verification
+      // Create user with Supabase - explicitly disable email confirmation
       const { error, data } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          // Skip email verification
-          emailRedirectTo: undefined,
-          data: {
-            email_confirmed: true
-          }
+          // Completely disable the email verification
+          emailRedirectTo: null
         }
       });
 
@@ -132,22 +129,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // Sign in immediately after signup
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (signInError) {
-        throw signInError;
-      }
-
+      // Simply show success message
       toast({
         title: "Account created successfully",
-        description: "Welcome to Daily Snap!",
+        description: "You can now sign in with your credentials.",
       });
 
-      navigate('/dashboard');
+      // Redirect to login page instead of auto-signing in
+      navigate('/auth?tab=signin');
 
     } catch (error: any) {
       toast({
