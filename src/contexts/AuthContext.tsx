@@ -17,7 +17,7 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // The production URL for the application
-const PRODUCTION_URL = 'https://yasir-khan-7.github.io/daily-snap-reflector';
+const PRODUCTION_URL = 'https://yasir-khan-7.github.io/daily-snap-reflector/#';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const accessToken = hashParams.get('access_token');
       const refreshToken = hashParams.get('refresh_token');
       const type = hashParams.get('type');
-      
+
       if (type === 'signup' && accessToken) {
         try {
           // Set the session with the tokens from URL
@@ -42,14 +42,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             access_token: accessToken,
             refresh_token: refreshToken || '',
           });
-          
+
           if (error) throw error;
-          
+
           toast({
             title: "Email verified successfully",
             description: "You can now sign in with your credentials.",
           });
-          
+
           // Clear the hash and redirect to signin
           window.history.replaceState(null, '', window.location.pathname);
           navigate('/auth?tab=signin');
@@ -58,7 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     };
-    
+
     handleEmailConfirmation();
   }, [location, navigate]);
 
@@ -105,13 +105,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string) => {
     try {
       setLoading(true);
-      
+
       // Determine the redirect URL based on environment
       const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const redirectTo = isLocalhost 
-        ? `${window.location.origin}/auth?tab=signin` 
+      const redirectTo = isLocalhost
+        ? `${window.location.origin}/auth?tab=signin`
         : `${PRODUCTION_URL}/auth?tab=signin`;
-      
+
       const { error, data } = await supabase.auth.signUp({
         email,
         password,

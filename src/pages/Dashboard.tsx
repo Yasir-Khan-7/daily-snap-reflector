@@ -378,7 +378,32 @@ const Dashboard: React.FC = () => {
           {notes.filter(note => note.type === 'task').length === 0 && (
             <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
               <p className="text-gray-600">No tasks found. Create a new task using the Notes tab.</p>
-              <Button variant="outline" className="mt-4 gap-2" onClick={() => document.getElementById('tasks-tab')?.click()}>
+              <Button
+                variant="outline"
+                className="mt-4 gap-2"
+                onClick={() => {
+                  // Switch to Notes tab
+                  const notesTab = document.querySelector('[value="notes"]');
+                  if (notesTab) {
+                    (notesTab as HTMLElement).click();
+
+                    // Wait for tab to switch, then set task type and focus
+                    setTimeout(() => {
+                      // Find and click the Task tab in the note input
+                      const taskTab = document.querySelector('[value="task"]');
+                      if (taskTab) {
+                        (taskTab as HTMLElement).click();
+                      }
+
+                      // Focus on the textarea
+                      const textarea = document.querySelector('textarea');
+                      if (textarea) {
+                        textarea.focus();
+                      }
+                    }, 100);
+                  }
+                }}
+              >
                 <Plus size={16} />
                 Add Task
               </Button>
