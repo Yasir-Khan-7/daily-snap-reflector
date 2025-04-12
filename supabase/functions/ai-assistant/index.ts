@@ -17,7 +17,17 @@ serve(async (req) => {
   }
 
   try {
+    // Log the incoming request to help with debugging
+    console.log("Received request to AI assistant:", req.url);
+    
     const { action, content } = await req.json();
+    console.log(`Processing action: ${action} with content length: ${content?.length || 0}`);
+    
+    if (!groqApiKey) {
+      console.error("Missing GROQ_API_KEY environment variable");
+      throw new Error("Server configuration error: Missing API key");
+    }
+    
     let prompt = "";
     
     switch (action) {
@@ -37,6 +47,8 @@ serve(async (req) => {
         prompt = `${action}: ${content}`;
     }
 
+    console.log("Sending request to Groq API");
+    
     const chatCompletion = await groqClient.chat.completions.create({
       messages: [
         {
@@ -52,6 +64,7 @@ serve(async (req) => {
     });
 
     const response = chatCompletion.choices[0]?.message?.content || "No response generated";
+    console.log("Received response from Groq API");
 
     return new Response(JSON.stringify({ response }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

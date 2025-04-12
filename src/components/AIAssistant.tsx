@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAIAssistant } from '@/hooks/use-ai-assistant';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Brain, Sparkles, Tag, Lightbulb, Loader2 } from 'lucide-react';
+import { Brain, Sparkles, Tag, Lightbulb, Loader2, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AIAssistantProps {
   content: string;
@@ -13,7 +14,7 @@ interface AIAssistantProps {
 }
 
 const AIAssistant: React.FC<AIAssistantProps> = ({ content, onApply, onAddTags }) => {
-  const { processWithAI, loading } = useAIAssistant();
+  const { processWithAI, loading, error } = useAIAssistant();
   const [result, setResult] = useState<string>('');
   const [tags, setTags] = useState<string[]>([]);
   const [action, setAction] = useState<string | null>(null);
@@ -58,6 +59,9 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ content, onApply, onAddTags }
     }
   };
 
+  // Check if content is too short
+  const contentTooShort = content.trim().length < 2;
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -70,7 +74,16 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ content, onApply, onAddTags }
         <div className="space-y-4">
           <h4 className="font-medium text-sm">AI Assistant</h4>
           
-          {!action && !loading && (
+          {contentTooShort && !action && (
+            <Alert className="bg-amber-50 text-amber-800 border-amber-200">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Please add more content to use AI assistance.
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {!action && !loading && !contentTooShort && (
             <div className="grid grid-cols-2 gap-2">
               <Button 
                 variant="outline" 
@@ -108,12 +121,22 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ content, onApply, onAddTags }
           )}
           
           {loading && (
-            <div className="flex items-center justify-center py-4">
+            <div className="flex flex-col items-center justify-center py-4 space-y-2">
               <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
+              <p className="text-sm text-gray-500">Processing with AI...</p>
             </div>
           )}
+
+          {error && !loading && (
+            <Alert className="bg-red-50 text-red-800 border-red-200">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {error}
+              </AlertDescription>
+            </Alert>
+          )}
           
-          {action && !loading && (
+          {action && !loading && !error && (
             <div className="space-y-3">
               <div className="text-xs font-medium uppercase text-gray-500">
                 {action === 'categorize' ? 'Suggested Tags' : 'Result'}
