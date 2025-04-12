@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Session, User } from '@supabase/supabase-js';
+import { Session, User, Provider } from '@supabase/supabase-js';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 
@@ -106,18 +106,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
 
-      // First, we need to create the user with auth.admin if possible
-      // But since we don't have admin rights in the client, we'll use a workaround
-      // to bypass email verification
-      const { error, data } = await supabase.auth.signUp({
+      // Try to sign in first - in case the user already exists
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
-        password,
+        password
+      });
+
+      // If sign in succeeded, it means user already exists - navigate to dashboard
+      if (!signInError) {
+        toast({
+          title: "Welcome back!",
+          description: "You've successfully signed in with an existing account.",
+        });
+        navigate('/dashboard');
+        return;
+      }
+
+      // Continue with sign up if sign in failed
+
+      // First method - try sign up with phone auth
+      // This will bypass email verification in some Supabase instances
+      try {
+        // Try to use OAuth provider to bypass email verification
+        // In this case we'll try to sign in with GitHub
+        const { error, data } = await supabase.auth.signInWithOAuth({
+          provider: 'github',
+          options: {
+            redirectTo: window.location.origin + '/#/auth',
+            skipBrowserRedirect: true
+          }
+        });
+
+        if (!error && data) {
+          window.location.href = data.url;
+          return;
+        }
+      } catch (oauthError) {
+        console.log("OAuth attempt failed, trying fallback method");
+      }
+
+      // Fallback method - try regular signup but with magic link
+      const { error, data } = await supabase.auth.signInWithOtp({
+        email,
         options: {
-          data: {
-            email_confirmed: true,
-            confirmed_at: new Date().toISOString()
-          },
-          emailRedirectTo: null
+          shouldCreateUser: true,
+          emailRedirectTo: window.location.origin + '/#/dashboard'
         }
       });
 
@@ -125,46 +158,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
 
-      if (data?.user?.identities?.length === 0) {
-        toast({
-          title: "Account already exists",
-          description: "This email is already registered. Please sign in instead.",
-        });
-        navigate('/auth?tab=signin');
-        return;
-      }
+      // Show a message to the user
+      toast({
+        title: "Signup successful!",
+        description: "We've sent you a magic link to sign in immediately. Check your email!"
+      });
 
-      // After signup, directly try to sign in without verification
-      try {
-        // Try to immediately sign in with the created credentials
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-
-        if (signInError) {
-          // If sign-in fails, just redirect to login page
-          toast({
-            title: "Account created",
-            description: "Please sign in with your credentials.",
-          });
-          navigate('/auth?tab=signin');
-        } else {
-          // If sign-in succeeds, navigate to dashboard
-          toast({
-            title: "Welcome to Daily Snap!",
-            description: "Your account has been created and you're now signed in.",
-          });
-          navigate('/dashboard');
-        }
-      } catch (signInError) {
-        // If there's any error in the sign-in attempt, fall back to redirecting to login
-        toast({
-          title: "Account created",
-          description: "Please sign in with your credentials.",
-        });
-        navigate('/auth?tab=signin');
-      }
+      navigate('/auth?tab=signin');
 
     } catch (error: any) {
       toast({
@@ -180,45 +180,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+      // Try signing in with password
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
       if (error) {
-        // Check if error is related to email confirmation
+        // If regular sign-in fails, try magic link approach
         if (error.message.includes('Email not confirmed') ||
-          error.message.includes('Email verification required')) {
+          error.message.includes('Invalid login credentials')) {
 
-          // Try to auto-confirm the email through the API
-          try {
-            // Try to sign up again with the same credentials to force confirmation
-            await supabase.auth.signUp({
-              email,
-              password,
-              options: {
-                data: {
-                  email_confirmed: true,
-                  confirmed_at: new Date().toISOString()
-                }
-              }
-            });
-
-            // Try signing in again
-            const { error: retryError } = await supabase.auth.signInWithPassword({
-              email,
-              password
-            });
-
-            if (retryError) {
-              throw retryError;
-            } else {
-              // Success! Navigate to dashboard
-              navigate('/dashboard');
-              return;
+          // Send magic link instead
+          const { error: otpError } = await supabase.auth.signInWithOtp({
+            email,
+            options: {
+              shouldCreateUser: false,
+              emailRedirectTo: window.location.origin + '/#/dashboard'
             }
-          } catch (confirmError) {
-            throw new Error(
-              "Your email is not confirmed. Please try signing in again or contact support."
-            );
+          });
+
+          if (otpError) {
+            throw otpError;
           }
+
+          toast({
+            title: "Magic link sent",
+            description: "Check your email for a link to sign in immediately!",
+          });
+
+          return;
         } else {
           throw error;
         }
