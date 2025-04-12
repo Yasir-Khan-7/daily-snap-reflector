@@ -11,8 +11,10 @@ import { toast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { X, BarChart3, FileText, Settings } from 'lucide-react';
+import { X, BarChart3, FileText, CalendarClock, ListTodo } from 'lucide-react';
 import TabView from '@/components/ui/tabs-view';
+import PomodoroTimer from '@/components/PomodoroTimer';
+import HabitTracker from '@/components/HabitTracker';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -301,13 +303,41 @@ const Dashboard: React.FC = () => {
       content: <NotesTabContent />
     },
     {
-      id: 'settings',
-      label: 'Settings',
-      icon: <Settings className="h-4 w-4" />,
+      id: 'productivity',
+      label: 'Productivity',
+      icon: <CalendarClock className="h-4 w-4" />,
       content: (
-        <div className="py-6">
-          <h2 className="text-lg font-semibold mb-4">Settings</h2>
-          <p className="text-muted-foreground">Settings panel is under development.</p>
+        <div className="py-4 space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <h2 className="text-lg font-medium mb-4">Pomodoro Timer</h2>
+              <PomodoroTimer />
+            </div>
+            <div>
+              <h2 className="text-lg font-medium mb-4">Habit Tracker</h2>
+              <HabitTracker />
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'tasks',
+      label: 'Tasks',
+      icon: <ListTodo className="h-4 w-4" />,
+      content: (
+        <div className="py-4">
+          <h2 className="text-lg font-semibold mb-4">Task Manager</h2>
+          <NoteList
+            notes={notes.filter(note => note.type === 'task')}
+            onDeleteNote={handleDeleteNote}
+            onToggleTask={handleToggleTask}
+          />
+          {notes.filter(note => note.type === 'task').length === 0 && (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <p className="text-gray-600">No tasks found. Create a new task using the Notes tab.</p>
+            </div>
+          )}
         </div>
       )
     }

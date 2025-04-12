@@ -78,9 +78,9 @@ export const Header: React.FC = () => {
         {/* Actions */}
         <div className="flex items-center gap-4">
           <div className="hidden md:flex items-center gap-4">
-            <Button variant="outline" size="sm" className="gap-2">
-              <Sparkles className="h-4 w-4 text-yellow-500" />
-              <span className="text-yellow-700">AI Assist</span>
+            <Button variant="outline" size="sm" className="gap-2 bg-gradient-to-r from-amber-50 to-yellow-50 border-yellow-200 hover:from-amber-100 hover:to-yellow-100">
+              <Sparkles className="h-4 w-4 text-amber-500" />
+              <span className="text-amber-700">Ask AI</span>
             </Button>
 
             <DropdownMenu>
@@ -108,9 +108,9 @@ export const Header: React.FC = () => {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/settings" className="cursor-pointer">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
+                  <Link to="/notes" className="cursor-pointer">
+                    <FileText className="mr-2 h-4 w-4" />
+                    <span>All Notes</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -162,13 +162,6 @@ export const Header: React.FC = () => {
                     onClick={() => setIsMenuOpen(false)}
                   >
                     All Notes
-                  </NavLink>
-                  <NavLink
-                    href="/settings"
-                    icon={<Settings className="h-4 w-4" />}
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Settings
                   </NavLink>
                   <NavLink
                     href="/auth"

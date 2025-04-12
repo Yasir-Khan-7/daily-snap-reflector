@@ -72,7 +72,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ content, onApply, onAddTags }
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2 bg-gradient-to-r from-amber-50 to-yellow-50 border-yellow-200 hover:from-amber-100 hover:to-yellow-100">
           <Sparkles className="w-4 h-4 text-amber-500" />
-          <span className="text-amber-700">AI Assist</span>
+          <span className="text-amber-700">Ask AI</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[350px] p-0" align="start">
@@ -160,7 +160,10 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ content, onApply, onAddTags }
                       <li>Generate relevant tags</li>
                       <li>Suggest next actions</li>
                     </ul>
-                    <p className="text-xs mt-2">Powered by Groq AI</p>
+                    <div className="flex items-center gap-2 mt-4 pt-2 border-t border-gray-100">
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-md">No API key required</span>
+                      <span className="text-xs">Works offline</span>
+                    </div>
                   </div>
                 </TabsContent>
               </Tabs>
@@ -204,7 +207,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ content, onApply, onAddTags }
                     ))}
                   </div>
                 ) : (
-                  result && <p className="text-sm">{result}</p>
+                  result && <p className="text-sm whitespace-pre-line">{result}</p>
                 )}
               </CardContent>
 

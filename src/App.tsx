@@ -9,7 +9,6 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
-import Settings from "./pages/Settings";
 import Notes from "./pages/Notes";
 
 // Create a client
@@ -34,7 +33,6 @@ function App() {
               <Route element={<ProtectedRoute />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/notes" element={<Notes />} />
-                <Route path="/settings" element={<Settings />} />
               </Route>
 
               {/* Catch-all route */}
