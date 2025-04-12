@@ -46,7 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: errorDescription || "Your verification link has expired or is invalid. Please try again.",
         });
 
-        // Clear URL parameters
+        // Clear URL parameters and redirect to signin
         window.history.replaceState(null, '', '/#/auth?tab=signin');
         return;
       }
@@ -56,9 +56,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const type = hashParams.get('type');
 
       if (accessToken && type === 'signup') {
+        // Instead of setting the session and redirecting, display success message
+        // and direct user to login page
         toast({
           title: "Email verified successfully",
-          description: "You can now sign in with your credentials.",
+          description: "Your email has been verified. You can now sign in with your credentials.",
         });
 
         // Clear URL parameters and redirect to signin
@@ -113,13 +115,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
 
-      // Keep the redirect URL very simple to avoid issues with complex parameters
-      const redirectTo = PRODUCTION_URL;
+      // Use a special redirect URL with instructions to show verification message
+      // This will prevent users from being redirected to localhost
+      const siteUrl = "https://yasir-khan-7.github.io/daily-snap-reflector";
+      const redirectTo = `${siteUrl}/#/verification-success`;
 
       const { error, data } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          data: {
+            redirect_app_url: siteUrl
+          },
           emailRedirectTo: redirectTo
         }
       });
