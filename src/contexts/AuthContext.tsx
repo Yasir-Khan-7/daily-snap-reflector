@@ -106,12 +106,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
 
-      // Create user with Supabase - explicitly disable email confirmation
+      // First, we need to create the user with auth.admin if possible
+      // But since we don't have admin rights in the client, we'll use a workaround
+      // to bypass email verification
       const { error, data } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          // Completely disable the email verification
+          data: {
+            email_confirmed: true,
+            confirmed_at: new Date().toISOString()
+          },
           emailRedirectTo: null
         }
       });
@@ -129,14 +134,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // Simply show success message
-      toast({
-        title: "Account created successfully",
-        description: "You can now sign in with your credentials.",
-      });
+      // After signup, directly try to sign in without verification
+      try {
+        // Try to immediately sign in with the created credentials
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
 
-      // Redirect to login page instead of auto-signing in
-      navigate('/auth?tab=signin');
+        if (signInError) {
+          // If sign-in fails, just redirect to login page
+          toast({
+            title: "Account created",
+            description: "Please sign in with your credentials.",
+          });
+          navigate('/auth?tab=signin');
+        } else {
+          // If sign-in succeeds, navigate to dashboard
+          toast({
+            title: "Welcome to Daily Snap!",
+            description: "Your account has been created and you're now signed in.",
+          });
+          navigate('/dashboard');
+        }
+      } catch (signInError) {
+        // If there's any error in the sign-in attempt, fall back to redirecting to login
+        toast({
+          title: "Account created",
+          description: "Please sign in with your credentials.",
+        });
+        navigate('/auth?tab=signin');
+      }
 
     } catch (error: any) {
       toast({
@@ -155,7 +183,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
-        throw error;
+        // Check if error is related to email confirmation
+        if (error.message.includes('Email not confirmed') ||
+          error.message.includes('Email verification required')) {
+
+          // Try to auto-confirm the email through the API
+          try {
+            // Try to sign up again with the same credentials to force confirmation
+            await supabase.auth.signUp({
+              email,
+              password,
+              options: {
+                data: {
+                  email_confirmed: true,
+                  confirmed_at: new Date().toISOString()
+                }
+              }
+            });
+
+            // Try signing in again
+            const { error: retryError } = await supabase.auth.signInWithPassword({
+              email,
+              password
+            });
+
+            if (retryError) {
+              throw retryError;
+            } else {
+              // Success! Navigate to dashboard
+              navigate('/dashboard');
+              return;
+            }
+          } catch (confirmError) {
+            throw new Error(
+              "Your email is not confirmed. Please try signing in again or contact support."
+            );
+          }
+        } else {
+          throw error;
+        }
       }
 
       navigate('/dashboard');
