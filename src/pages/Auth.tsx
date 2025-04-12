@@ -83,20 +83,17 @@ const Auth: React.FC = () => {
               <div className="bg-purple-50 rounded-lg p-6 flex flex-col items-center">
                 <CheckCircle className="h-12 w-12 text-purple-500 mb-3" />
                 <p className="text-sm text-gray-700">
-                  After clicking the verification link, you'll be able to sign in to your account.
+                  After clicking the verification link, return here to sign in to your account.
                 </p>
               </div>
 
               <div className="pt-2">
-                <p className="text-sm text-gray-500 mb-3">
-                  Redirecting to login in a moment...
-                </p>
                 <Button
                   variant="default"
                   onClick={goToSignIn}
                   className="w-full gap-2"
                 >
-                  Go to Login Now
+                  Go to Login
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>

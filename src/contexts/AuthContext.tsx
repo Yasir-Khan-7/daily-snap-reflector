@@ -151,11 +151,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "Please check your email to verify your account before signing in.",
       });
 
-      // After showing verification message, navigate to signin tab after a short delay
-      setTimeout(() => {
-        setVerificationSent(false);
-        navigate('/auth?tab=signin&verification=pending');
-      }, 3000);
+      // Don't auto-redirect, just leave the verification message on screen
+      // User will need to manually click to sign in
 
     } catch (error: any) {
       toast({
