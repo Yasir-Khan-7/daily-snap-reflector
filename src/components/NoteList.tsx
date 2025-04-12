@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Note } from '@/types/Note';
-import { Trash2, CheckCircle2, Circle } from 'lucide-react';
+import { Trash2, CheckCircle2, Circle, Link, FileText, Image } from 'lucide-react';
 
 interface NoteListProps {
   notes: Note[];
@@ -26,6 +26,19 @@ const NoteList: React.FC<NoteListProps> = ({ notes, onDeleteNote, onToggleTask }
               )}
             </button>
           )}
+          
+          {note.type === 'text' && (
+            <FileText className="text-blue-500 mt-1" size={20} />
+          )}
+          
+          {note.type === 'link' && (
+            <Link className="text-purple-500 mt-1" size={20} />
+          )}
+          
+          {note.type === 'image' && (
+            <Image className="text-green-500 mt-1" size={20} />
+          )}
+          
           <div className="flex-grow">
             <p 
               className={`text-gray-800 ${
@@ -36,6 +49,17 @@ const NoteList: React.FC<NoteListProps> = ({ notes, onDeleteNote, onToggleTask }
             >
               {note.content}
             </p>
+            
+            {note.type === 'image' && note.imageUrl && (
+              <div className="mt-2">
+                <img 
+                  src={note.imageUrl} 
+                  alt={note.content} 
+                  className="max-h-64 rounded-md object-cover"
+                />
+              </div>
+            )}
+            
             <div className="text-xs text-gray-500 mt-2">
               {note.createdAt.toLocaleString()}
             </div>

@@ -32,6 +32,11 @@ const Index: React.FC = () => {
   };
 
   const handleSearch = (query: string) => {
+    if (query.trim() === '') {
+      setFilteredNotes(notes);
+      return;
+    }
+    
     const filtered = notes.filter(note => 
       note.content.toLowerCase().includes(query.toLowerCase())
     );

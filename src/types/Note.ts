@@ -1,5 +1,5 @@
 
-export type NoteType = 'text' | 'task' | 'link';
+export type NoteType = 'text' | 'task' | 'link' | 'image';
 
 export interface Note {
   id: string;
@@ -8,4 +8,5 @@ export interface Note {
   createdAt: Date;
   tags?: string[];
   completed?: boolean;
+  imageUrl?: string; // For image type notes
 }
