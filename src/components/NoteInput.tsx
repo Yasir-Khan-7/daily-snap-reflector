@@ -95,14 +95,14 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
       <CardContent className={`pt-4 ${isExpanded ? 'pb-4' : 'pb-0'}`}>
         {!isExpanded ? (
           <div 
-            className="flex items-center gap-3 p-2 cursor-pointer hover:bg-purple-50/50 transition-colors rounded-lg"
+            className="flex flex-col sm:flex-row items-center gap-3 p-2 cursor-pointer hover:bg-purple-50/50 transition-colors rounded-lg"
             onClick={() => setIsExpanded(true)}
           >
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white">
               <Plus size={18} />
             </div>
-            <p className="text-gray-500 font-medium">What's on your mind today?</p>
-            <div className="ml-auto">
+            <p className="text-gray-500 font-medium mt-1 sm:mt-0">What's on your mind?</p>
+            <div className="mt-1 sm:mt-0 sm:ml-auto w-full sm:w-auto flex justify-center sm:justify-end">
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -110,7 +110,7 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
                   e.stopPropagation();
                   setIsExpanded(true);
                 }}
-                className="text-purple-600 hover:text-purple-700 hover:bg-purple-100"
+                className="text-purple-600 hover:text-purple-700 hover:bg-purple-100 w-full sm:w-auto"
               >
                 <Sparkles size={16} className="mr-1" />
                 Capture Moment
@@ -141,15 +141,15 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
               onValueChange={(value) => setType(value as NoteType)}
               className="w-full"
             >
-              <TabsList className="grid grid-cols-4 mb-6 p-1 bg-purple-50 rounded-lg">
+              <TabsList className="grid grid-cols-4 mb-4 p-1 bg-purple-50 rounded-lg">
                 {(['text', 'task', 'link', 'image'] as NoteType[]).map((noteType) => (
                   <TabsTrigger 
                     key={noteType} 
                     value={noteType} 
-                    className="flex items-center gap-2 rounded-md data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow transition-all"
+                    className="flex items-center justify-center gap-1 rounded-md data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow transition-all py-1.5 px-1.5"
                   >
                     <span className="transition-transform group-hover:scale-110">{noteTypeIcons[noteType]}</span>
-                    {noteType.charAt(0).toUpperCase() + noteType.slice(1)}
+                    <span className="sm:inline hidden">{noteType.charAt(0).toUpperCase() + noteType.slice(1)}</span>
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -239,57 +239,65 @@ const NoteInput: React.FC<NoteInputProps> = ({ onAddNote }) => {
             </Tabs>
 
             <div className="mt-4 space-y-3">
-              <div className="flex items-center">
-                <Label htmlFor="tag-input" className="flex items-center mr-2 text-sm font-medium text-gray-600">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="tag-input" className="flex items-center text-sm font-medium text-gray-600">
                   <Tag className="h-4 w-4 mr-1" />
                   Tags:
                 </Label>
-                <Input
-                  id="tag-input"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={handleAddTag}
-                  placeholder="Add tags (press Enter)"
-                  className="flex-grow rounded-lg border-gray-200 focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50 transition-all"
-                />
+                <div className="w-full">
+                  <Input
+                    id="tag-input"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={handleAddTag}
+                    placeholder="Add tags (press Enter)"
+                    className="rounded-lg border-gray-200 focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50 transition-all"
+                  />
+                </div>
               </div>
 
               {tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {tags.map((tag, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      transition={{ duration: 0.15 }}
+                  {tags.map(tag => (
+                    <Badge 
+                      key={tag} 
+                      variant="secondary"
+                      className="px-3 py-1 bg-purple-100 text-purple-800 hover:bg-purple-200 transition-colors flex items-center gap-1 text-xs"
                     >
-                      <Badge 
-                        variant="secondary" 
-                        className="flex items-center gap-1 bg-purple-100 text-purple-800 hover:bg-purple-200 transition-colors"
+                      {tag}
+                      <button
+                        onClick={() => handleRemoveTag(tag)}
+                        className="ml-1 text-purple-700 hover:text-purple-900 focus:outline-none rounded-full hover:bg-purple-200 p-0.5"
                       >
-                        #{tag}
-                        <button
-                          onClick={() => handleRemoveTag(tag)}
-                          className="ml-1 rounded-full p-0.5 hover:bg-purple-300/30 focus:outline-none transition-colors"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    </motion.div>
+                        <X size={12} />
+                      </button>
+                    </Badge>
                   ))}
                 </div>
               )}
             </div>
 
-            <div className="flex justify-end mt-6">
+            <div className="flex flex-col sm:flex-row justify-end gap-2 mt-4">
               <Button
-                onClick={handleAddNote}
-                disabled={type === 'image' ? !imageFile : !content.trim()}
-                className="gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-sm hover:shadow transition-all rounded-lg"
+                variant="outline"
+                onClick={() => {
+                  setContent('');
+                  setImageFile(null);
+                  setImagePreview(null);
+                  setTags([]);
+                  setTagInput('');
+                  setIsExpanded(false);
+                }}
+                className="w-full sm:w-auto text-gray-600 hover:text-gray-800 order-2 sm:order-1"
               >
-                <Plus size={18} />
-                Add Note
+                Cancel
+              </Button>
+              <Button
+                disabled={(type === 'image' && !imageFile) || (type !== 'image' && !content.trim())}
+                onClick={handleAddNote}
+                className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white order-1 sm:order-2"
+              >
+                Add {type.charAt(0).toUpperCase() + type.slice(1)}
               </Button>
             </div>
           </motion.div>
