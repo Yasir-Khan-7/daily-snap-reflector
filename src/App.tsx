@@ -10,6 +10,9 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import Notes from "./pages/Notes";
+import Pomodoro from "./pages/Pomodoro";
+import AIAssistantPage from "./pages/AIAssistantPage";
+import HabitTracker from "./pages/HabitTracker";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -30,6 +33,9 @@ function App() {
               <Route element={<ProtectedRoute />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/notes" element={<Notes />} />
+                <Route path="/pomodoro" element={<Pomodoro />} />
+                <Route path="/ai-assistant" element={<AIAssistantPage />} />
+                <Route path="/habits" element={<HabitTracker />} />
               </Route>
 
               {/* Catch-all route */}

@@ -11,14 +11,17 @@ import { toast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { X, BarChart3, FileText, CalendarClock, ListTodo, Plus, Filter } from 'lucide-react';
+import { X, BarChart3, FileText, CalendarClock, ListTodo, Plus, Filter, Timer, Brain, Calendar } from 'lucide-react';
 import TabView from '@/components/ui/tabs-view';
 import PomodoroTimer from '@/components/PomodoroTimer';
 import HabitTracker from '@/components/HabitTracker';
 import AIAssistant from '@/components/AIAssistant';
+import { Card } from '@/components/ui/card';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [notes, setNotes] = useState<Note[]>([]);
   const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
@@ -232,6 +235,37 @@ const Dashboard: React.FC = () => {
     setActiveTags([]);
   };
 
+  const features = [
+    {
+      title: 'Tasks & Notes',
+      description: 'Manage your daily tasks and notes',
+      icon: <ListTodo className="h-6 w-6" />,
+      onClick: () => navigate('/notes'),
+      color: 'bg-purple-100 text-purple-600'
+    },
+    {
+      title: 'Pomodoro Timer',
+      description: 'Stay focused with time management',
+      icon: <Timer className="h-6 w-6" />,
+      onClick: () => navigate('/pomodoro'),
+      color: 'bg-blue-100 text-blue-600'
+    },
+    {
+      title: 'AI Assistant',
+      description: 'Get insights and analysis',
+      icon: <Brain className="h-6 w-6" />,
+      onClick: () => navigate('/ai-assistant'),
+      color: 'bg-green-100 text-green-600'
+    },
+    {
+      title: 'Habit Tracker',
+      description: 'Build and maintain habits',
+      icon: <Calendar className="h-6 w-6" />,
+      onClick: () => navigate('/habits'),
+      color: 'bg-amber-100 text-amber-600'
+    }
+  ];
+
   // Define tab content components
   const NotesTabContent = () => (
     <div className="container mx-auto max-w-5xl px-4">
@@ -372,38 +406,48 @@ const Dashboard: React.FC = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex flex-col gap-6">
-          {/* AI Assistant Section */}
-          <AIAssistant notes={notes} />
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-col gap-6">
+            {/* Welcome Section */}
+            <Card className="p-6">
+              <h1 className="text-2xl md:text-3xl font-bold mb-2">
+                Welcome back, {user?.email}
+              </h1>
+              <p className="text-muted-foreground">
+                Here's an overview of your activity and quick access to features
+              </p>
+            </Card>
 
-          {/* Main Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Notes and Tasks */}
-            <div className="lg:col-span-2 space-y-6">
-              <TabView
-                tabs={[
-                  {
-                    id: 'notes',
-                    label: 'Notes',
-                    icon: <FileText className="h-4 w-4" />,
-                    content: <NotesTabContent />
-                  },
-                  {
-                    id: 'tasks',
-                    label: 'Tasks',
-                    icon: <ListTodo className="h-4 w-4" />,
-                    content: <TasksTabContent />
-                  }
-                ]}
-              />
+            {/* Analytics Overview */}
+            <div className="w-full">
+              <Analytics notes={notes} />
             </div>
 
-            {/* Right Column - Tools */}
-            <div className="space-y-6">
-              <PomodoroTimer />
-              <HabitTracker />
-              <Analytics notes={notes} />
+            {/* Quick Access Features */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {features.map((feature, index) => (
+                <Card
+                  key={index}
+                  className="p-6 cursor-pointer hover:shadow-md transition-all"
+                  onClick={feature.onClick}
+                >
+                  <div className="flex flex-col items-center text-center space-y-4">
+                    <div className={`p-3 rounded-full ${feature.color}`}>
+                      {feature.icon}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">{feature.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {feature.description}
+                      </p>
+                    </div>
+                    <Button variant="ghost" className="w-full">
+                      Open {feature.title}
+                    </Button>
+                  </div>
+                </Card>
+              ))}
             </div>
           </div>
         </div>
