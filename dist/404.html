@@ -15,22 +15,14 @@
     var l = window.location;
     var repoName = '/daily-snap-reflector';
     
-    // Check if we're on the GitHub Pages domain
-    var isGitHubPages = l.hostname.includes('github.io');
-    
-    if (isGitHubPages) {
-      l.replace(
-        l.protocol + '//' + l.hostname + repoName + '/?/' +
-        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-        l.hash
-      );
-    } else {
-      // If not on GitHub Pages (e.g. local development), just redirect to root
-      l.replace(
-        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') + '/'
-      );
-    }
+    l.replace(
+      l.protocol + '//' + l.hostname + (l.hostname.includes('github.io') ? repoName : '') +
+      (l.port ? ':' + l.port : '') +
+      '/?/' +
+      l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+      (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+      l.hash
+    );
   </script>
 </head>
 <body>
