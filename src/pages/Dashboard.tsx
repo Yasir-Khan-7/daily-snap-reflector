@@ -15,6 +15,7 @@ import { X, BarChart3, FileText, CalendarClock, ListTodo, Plus, Filter } from 'l
 import TabView from '@/components/ui/tabs-view';
 import PomodoroTimer from '@/components/PomodoroTimer';
 import HabitTracker from '@/components/HabitTracker';
+import AIAssistant from '@/components/AIAssistant';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -309,122 +310,103 @@ const Dashboard: React.FC = () => {
     </div>
   );
 
-  // Define the tabs configuration
-  const dashboardTabs = [
-    {
-      id: 'analytics',
-      label: 'Analytics',
-      icon: <BarChart3 className="h-4 w-4" />,
-      content: <Analytics notes={notes} />
-    },
-    {
-      id: 'notes',
-      label: 'Notes',
-      icon: <FileText className="h-4 w-4" />,
-      content: <NotesTabContent />
-    },
-    {
-      id: 'productivity',
-      label: 'Productivity',
-      icon: <CalendarClock className="h-4 w-4" />,
-      content: (
-        <div className="container mx-auto max-w-6xl px-4 py-6">
-          <div className="grid gap-8 md:grid-cols-2">
-            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-              <h2 className="text-xl font-medium mb-4 text-gray-800 flex items-center gap-2">
-                <CalendarClock className="h-5 w-5 text-purple-500" />
-                Pomodoro Timer
-              </h2>
-              <PomodoroTimer />
-            </div>
-            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-              <h2 className="text-xl font-medium mb-4 text-gray-800 flex items-center gap-2">
-                <ListTodo className="h-5 w-5 text-green-500" />
-                Habit Tracker
-              </h2>
-              <HabitTracker />
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'tasks',
-      label: 'Tasks',
-      icon: <ListTodo className="h-4 w-4" />,
-      content: (
-        <div className="container mx-auto max-w-5xl px-4 py-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-              <ListTodo className="h-5 w-5 text-green-500" />
-              Task Manager
-            </h2>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                {notes.filter(note => note.type === 'task' && note.completed).length} Completed
-              </Badge>
-              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                {notes.filter(note => note.type === 'task' && !note.completed).length} Pending
-              </Badge>
-            </div>
-          </div>
-
-          <NoteList
-            notes={notes.filter(note => note.type === 'task')}
-            onDeleteNote={handleDeleteNote}
-            onToggleTask={handleToggleTask}
-          />
-
-          {notes.filter(note => note.type === 'task').length === 0 && (
-            <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
-              <p className="text-gray-600">No tasks found. Create a new task using the Notes tab.</p>
-              <Button
-                variant="outline"
-                className="mt-4 gap-2"
-                onClick={() => {
-                  // Switch to Notes tab
-                  const notesTab = document.querySelector('[value="notes"]');
-                  if (notesTab) {
-                    (notesTab as HTMLElement).click();
-
-                    // Wait for tab to switch, then set task type and focus
-                    setTimeout(() => {
-                      // Find and click the Task tab in the note input
-                      const taskTab = document.querySelector('[value="task"]');
-                      if (taskTab) {
-                        (taskTab as HTMLElement).click();
-                      }
-
-                      // Focus on the textarea
-                      const textarea = document.querySelector('textarea');
-                      if (textarea) {
-                        textarea.focus();
-                      }
-                    }, 100);
-                  }
-                }}
-              >
-                <Plus size={16} />
-                Add Task
-              </Button>
-            </div>
-          )}
-        </div>
-      )
-    }
-  ];
-
-  return (
-    <Layout>
-      <div className="bg-gradient-to-b from-purple-50 to-transparent pt-8 pb-4">
-        <div className="container mx-auto max-w-6xl px-4">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Manage and analyze your notes, tasks, and productivity</p>
+  const TasksTabContent = () => (
+    <div className="container mx-auto max-w-5xl px-4 py-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+          <ListTodo className="h-5 w-5 text-green-500" />
+          Task Manager
+        </h2>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            {notes.filter(note => note.type === 'task' && note.completed).length} Completed
+          </Badge>
+          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+            {notes.filter(note => note.type === 'task' && !note.completed).length} Pending
+          </Badge>
         </div>
       </div>
 
-      <div className="container mx-auto max-w-6xl py-4">
-        <TabView tabs={dashboardTabs} defaultValue="analytics" />
+      <NoteList
+        notes={notes.filter(note => note.type === 'task')}
+        onDeleteNote={handleDeleteNote}
+        onToggleTask={handleToggleTask}
+      />
+
+      {notes.filter(note => note.type === 'task').length === 0 && (
+        <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
+          <p className="text-gray-600">No tasks found. Create a new task using the Notes tab.</p>
+          <Button
+            variant="outline"
+            className="mt-4 gap-2"
+            onClick={() => {
+              // Switch to Notes tab
+              const notesTab = document.querySelector('[value="notes"]');
+              if (notesTab) {
+                (notesTab as HTMLElement).click();
+
+                // Wait for tab to switch, then set task type and focus
+                setTimeout(() => {
+                  // Find and click the Task tab in the note input
+                  const taskTab = document.querySelector('[value="task"]');
+                  if (taskTab) {
+                    (taskTab as HTMLElement).click();
+                  }
+
+                  // Focus on the textarea
+                  const textarea = document.querySelector('textarea');
+                  if (textarea) {
+                    textarea.focus();
+                  }
+                }, 100);
+              }
+            }}
+          >
+            <Plus size={16} />
+            Add Task
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <Layout>
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex flex-col gap-6">
+          {/* AI Assistant Section */}
+          <AIAssistant notes={notes} />
+
+          {/* Main Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Notes and Tasks */}
+            <div className="lg:col-span-2 space-y-6">
+              <TabView
+                tabs={[
+                  {
+                    id: 'notes',
+                    label: 'Notes',
+                    icon: <FileText className="h-4 w-4" />,
+                    content: <NotesTabContent />
+                  },
+                  {
+                    id: 'tasks',
+                    label: 'Tasks',
+                    icon: <ListTodo className="h-4 w-4" />,
+                    content: <TasksTabContent />
+                  }
+                ]}
+              />
+            </div>
+
+            {/* Right Column - Tools */}
+            <div className="space-y-6">
+              <PomodoroTimer />
+              <HabitTracker />
+              <Analytics notes={notes} />
+            </div>
+          </div>
+        </div>
       </div>
     </Layout>
   );
