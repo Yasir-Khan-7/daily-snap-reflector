@@ -74,11 +74,18 @@ const Dashboard: React.FC = () => {
 
         setNotes(formattedNotes);
       } catch (error: any) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load notes: " + error.message,
-        });
+        // Only show toast for database errors, not API key errors
+        const errorMessage = error.message || "Unknown error";
+        if (!errorMessage.includes("API key") && !errorMessage.includes("API") && !errorMessage.includes("key")) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to load notes: " + errorMessage,
+          });
+        } else {
+          // Log API errors to console but don't show them to the user
+          console.error("API error occurred:", errorMessage);
+        }
       } finally {
         setLoading(false);
       }

@@ -1,5 +1,5 @@
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +19,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import LogoImage from '@/assets/logo.png';
 
 type NavLinkProps = {
   href: string;
@@ -69,7 +70,7 @@ export const Header: React.FC = () => {
         {/* Logo and Nav for Desktop */}
         <div className="flex items-center gap-8">
           <Link to="/dashboard" className="flex items-center gap-2 group transition-transform hover:scale-105">
-            <img src="/logo.png" alt="Daily Snap" className="h-8 w-8 transition-transform group-hover:rotate-12" />
+            <img src={LogoImage} alt="Daily Snap" className="h-8 w-8 transition-transform group-hover:rotate-12" />
             <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 text-transparent bg-clip-text">Daily Snap</span>
           </Link>
 

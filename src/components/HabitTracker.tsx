@@ -143,9 +143,9 @@ const HabitTracker: React.FC = () => {
                         <p className="text-gray-500">No habits yet. Click "New Habit" to get started.</p>
                     </div>
                 ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-4 overflow-x-auto pb-2">
                         {/* Date headers */}
-                        <div className="grid grid-cols-[2fr_repeat(7,1fr)_1fr] gap-1 mb-2">
+                        <div className="grid grid-cols-[minmax(120px,2fr)_repeat(7,minmax(45px,1fr))_minmax(45px,1fr)] gap-1 mb-2 min-w-[600px]">
                             <div className="text-xs font-medium text-gray-500">Habit</div>
                             {dates.map((date, index) => (
                                 <div
@@ -163,12 +163,12 @@ const HabitTracker: React.FC = () => {
                         {habits.map((habit) => (
                             <div
                                 key={habit.id}
-                                className="grid grid-cols-[2fr_repeat(7,1fr)_1fr] gap-1 items-center"
+                                className="grid grid-cols-[minmax(120px,2fr)_repeat(7,minmax(45px,1fr))_minmax(45px,1fr)] gap-1 items-center min-w-[600px]"
                             >
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <div className="font-medium text-sm">{habit.name}</div>
-                                        <div className="text-xs text-gray-500">
+                                <div className="flex items-center justify-between pr-2">
+                                    <div className="truncate">
+                                        <div className="font-medium text-sm truncate">{habit.name}</div>
+                                        <div className="text-xs text-gray-500 truncate">
                                             {habit.streak > 0 ? (
                                                 <span className="text-green-600">🔥 {habit.streak} day streak</span>
                                             ) : (
@@ -179,7 +179,7 @@ const HabitTracker: React.FC = () => {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-6 w-6 text-gray-400 hover:text-red-500"
+                                        className="h-6 w-6 text-gray-400 hover:text-red-500 flex-shrink-0"
                                         onClick={() => deleteHabit(habit.id, habit.name)}
                                     >
                                         <Trash2 className="h-4 w-4" />

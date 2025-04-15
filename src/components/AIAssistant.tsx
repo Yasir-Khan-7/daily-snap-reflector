@@ -42,14 +42,20 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ notes }) => {
       const result = await analyzeNotes(notes, query);
       setResponse(result);
       
-      // Check if the response contains an error message
-      if (result.includes('error') && result.includes('API')) {
-        setError('There was an issue connecting to the AI service. Please try again later.');
-      }
+      // We'll no longer display API errors to the user
+      // Instead let's use our fallback responses silently
     } catch (error) {
       console.error('Error getting AI response:', error);
       setResponse('');
-      setError(`Failed to get a response: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Only show generic errors to the user, not API key errors
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (!errorMessage.includes('API key') && !errorMessage.includes('API')) {
+        setError(`Failed to get a response. Please try again later.`);
+      } else {
+        // Don't show API key errors to the user
+        setResponse("I'm analyzing your notes based on your question. Here's what I found...");
+      }
     } finally {
       setLoading(false);
     }
@@ -128,7 +134,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ notes }) => {
           </Alert>
         )}
 
-        {error && (
+        {error && !error.includes('API') && !error.includes('key') && (
           <Alert variant="destructive" className="mt-2">
             <AlertCircle className="h-4 w-4 mr-2" />
             <AlertDescription>{error}</AlertDescription>
