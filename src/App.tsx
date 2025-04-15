@@ -13,6 +13,7 @@ import Notes from "./pages/Notes";
 import Assistant from "./pages/Assistant";
 import Pomodoro from "./pages/Pomodoro";
 import Habits from "./pages/Habits";
+import EmailVerification from "./pages/EmailVerification";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/verify-email" element={<EmailVerification />} />
 
               {/* Protected Routes */}
               <Route element={<ProtectedRoute />}>

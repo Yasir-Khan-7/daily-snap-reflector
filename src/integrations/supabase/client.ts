@@ -8,4 +8,42 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+// Create client with optimal settings
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  },
+  // Add global error handler for better debugging
+  global: {
+    fetch: (...args) => {
+      // Set a timeout to prevent hanging requests
+      const [url, config] = args;
+      const timeout = 15000; // 15 seconds timeout
+      
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
+      
+      const actualConfig = {
+        ...config,
+        signal: controller.signal,
+        headers: {
+          ...config?.headers,
+          'x-client-info': 'daily-snap-app'
+        }
+      };
+      
+      return fetch(url, actualConfig)
+        .then(response => {
+          clearTimeout(id);
+          return response;
+        })
+        .catch(error => {
+          clearTimeout(id);
+          console.error(`Supabase fetch error for ${url}:`, error);
+          throw error;
+        });
+    }
+  }
+});

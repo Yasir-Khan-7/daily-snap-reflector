@@ -10,6 +10,7 @@ type AuthContextType = {
   signUp: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  resendVerificationEmail: (email: string) => Promise<void>;
   loading: boolean;
 };
 
@@ -38,6 +39,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           toast({
             title: "Signed out",
             description: "You've been signed out successfully.",
+          });
+        } else if (event === 'USER_UPDATED') {
+          toast({
+            title: "Account updated",
+            description: "Your account information has been updated.",
+          });
+        } else if (event === 'PASSWORD_RECOVERY') {
+          toast({
+            title: "Password recovery",
+            description: "Complete the form to reset your password.",
           });
         }
       }
@@ -73,36 +84,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // Try signing up without email verification
-      // By setting the email header to 'noverify', we can control email sending in some setups
-      const headers = {
-        'X-Skip-Email-Verification': 'true',
-        'X-Client-Info': 'no-email-please'
-      };
+      // Get the base URL for the app - support both hash and browser router
+      const baseUrl = window.location.origin;
+      // Use hash router style for redirects (#/ format)
+      const redirectTo = `${baseUrl}/#/verify-email`;
+      
+      console.log('Using redirect URL for verification:', redirectTo);
 
-      const { error, data } = await supabase.auth.signUp(
-        {
-          email,
-          password
-        },
-        {
-          redirectTo: window.location.origin + '/#/dashboard',
-          emailRedirectTo: null,
-          captchaToken: undefined,
-          headers
+      // Regular signup with email verification
+      const { error, data } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectTo
         }
-      );
+      });
 
       if (error) {
         throw error;
       }
 
-      // If signup is successful but still requires email verification
+      // If email confirmation is required, don't try to sign in automatically
       if (data?.user && !data.user.email_confirmed_at) {
-        // Try an immediate sign-in anyway - might work depending on Supabase config
-        await supabase.auth.signInWithPassword({ email, password });
+        toast({
+          title: "Verification required",
+          description: "Please check your email to verify your account.",
+        });
+        
+        // We don't navigate - the Auth component will show verification alert
+        return;
       }
 
+      // If email confirmation was not required (depends on Supabase settings)
       toast({
         title: "Account created!",
         description: "Your account has been created successfully.",
@@ -122,7 +135,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Handle other signup errors
       toast({
-        variant: "destructive",
         title: "Registration failed",
         description: error.message || "An error occurred during sign up.",
       });
@@ -134,34 +146,73 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log('Attempting to sign in with email:', email);
+      
+      // Check if Supabase is accessible first
+      try {
+        const { data: pingData, error: pingError } = await supabase.from('_pings').select('*').limit(1);
+        if (pingError) {
+          console.error('Supabase connection test failed:', pingError);
+        } else {
+          console.log('Supabase connection test succeeded');
+        }
+      } catch (pingErr) {
+        console.error('Supabase ping test error:', pingErr);
+      }
+
+      // Attempt the sign-in
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
-      if (error) {
-        // If the error is about email verification, try to force sign in
-        if (error.message.includes('Email not confirmed')) {
-          // Try to sign in again with direct password auth
-          const { error: retryError } = await supabase.auth.signInWithPassword({
-            email,
-            password
-          });
+      console.log('Sign in response:', { data, error });
 
-          if (retryError) {
-            throw retryError;
-          }
-        } else {
-          throw error;
+      if (error) {
+        console.error("Sign-in error:", error.message);
+        
+        // Handle email verification error
+        if (error.message.includes('Email not confirmed')) {
+          // Don't try to force sign in
+          toast({
+            title: "Email verification required",
+            description: "Please check your inbox and click the verification link before signing in.",
+          });
+          return;
         }
+        
+        // Handle other errors
+        toast({
+          title: "Login failed",
+          description: error.message || "Invalid email or password."
+        });
+        return;
       }
 
+      // Check if we got valid data back
+      if (!data || !data.session) {
+        console.error("No session returned from sign in");
+        toast({
+          title: "Login failed",
+          description: "No session data returned. Please try again."
+        });
+        return;
+      }
+
+      console.log('Sign in successful, navigating to dashboard');
       navigate('/dashboard');
     } catch (error: any) {
+      console.error("Sign-in exception:", error);
+      
+      // Provide a more helpful message for network errors
+      let errorMessage = error.message || "An unexpected error occurred.";
+      if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
+        errorMessage = "Network error: Please check your internet connection or try again later.";
+      }
+      
       toast({
-        variant: "destructive",
         title: "Login failed",
-        description: error.message || "Invalid email or password.",
+        description: errorMessage
       });
     } finally {
       setLoading(false);
@@ -181,8 +232,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resendVerificationEmail = async (email: string) => {
+    try {
+      setLoading(true);
+      
+      // Request a new verification email
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+      });
+
+      if (error) {
+        console.error("Error resending verification email:", error.message);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to resend verification email. Please try again."
+        });
+        return;
+      }
+
+      toast({
+        title: "Verification email sent",
+        description: "A new verification email has been sent to your inbox."
+      });
+    } catch (error: any) {
+      console.error("Error in resendVerificationEmail:", error);
+      toast({
+        title: "Error",
+        description: error.message || "An unexpected error occurred."
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ session, user, signUp, signIn, signOut, loading }}>
+    <AuthContext.Provider value={{ session, user, signUp, signIn, signOut, resendVerificationEmail, loading }}>
       {children}
     </AuthContext.Provider>
   );

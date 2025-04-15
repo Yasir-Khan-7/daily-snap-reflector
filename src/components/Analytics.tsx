@@ -23,6 +23,30 @@ const COLORS = {
     pending: '#dc2626',   // Red
 };
 
+// Create modern, vibrant colors for the charts with better distinction
+const MODERN_COLORS = {
+    text: { 
+        main: '#8b5cf6',    // Vibrant purple
+        light: '#a78bfa',
+        dark: '#7c3aed'
+    },
+    task: { 
+        main: '#10b981',    // Emerald green
+        light: '#34d399',
+        dark: '#059669'
+    },
+    link: { 
+        main: '#3b82f6',    // Royal blue
+        light: '#60a5fa',
+        dark: '#2563eb'
+    },
+    image: { 
+        main: '#f59e0b',   // Amber orange
+        light: '#fbbf24',
+        dark: '#d97706'
+    }
+};
+
 // Create a motion component with any props
 const MotionCell = motion(Cell);
 
@@ -146,12 +170,17 @@ const Analytics: React.FC<AnalyticsProps> = ({ notes, onViewFullReport }) => {
         };
     }, [notes]);
 
-    const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name }: any) => {
+    const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name, value }: any) => {
+        // Only render labels for segments with significant percentage
+        if (percent < 0.05) return null;
+      
         const RADIAN = Math.PI / 180;
-        const radius = outerRadius * 1.1;
+        // Increase radius to position labels further from the pie
+        const radius = outerRadius * 1.2;
         const x = cx + radius * Math.cos(-midAngle * RADIAN);
         const y = cy + radius * Math.sin(-midAngle * RADIAN);
       
+        // Label formatting
         return (
           <text 
             x={x} 
@@ -159,9 +188,10 @@ const Analytics: React.FC<AnalyticsProps> = ({ notes, onViewFullReport }) => {
             fill={stats.typeData[index].color}
             textAnchor={x > cx ? 'start' : 'end'} 
             dominantBaseline="central"
-            className="text-sm font-medium"
+            className="text-xs font-medium"
+            style={{ filter: 'drop-shadow(0px 0px 1px white)' }}
           >
-            {`${name} (${(percent * 100).toFixed(0)}%)`}
+            {`${name}: ${value}`}
           </text>
         );
     };
@@ -195,7 +225,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ notes, onViewFullReport }) => {
             {/* Distribution Charts */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Notes by Type */}
-                <Card className="border-gray-200 shadow-sm hover:shadow-md transition-all">
+                <Card className="border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-base flex items-center gap-2">
                             <FileText className="h-4 w-4 text-purple-500" />
@@ -206,37 +236,131 @@ const Analytics: React.FC<AnalyticsProps> = ({ notes, onViewFullReport }) => {
                     <CardContent className="h-72">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
+                                <defs>
+                                    {/* Create gradients for each slice for a modern look */}
+                                    <linearGradient id="colorText" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0%" stopColor={MODERN_COLORS.text.light} />
+                                        <stop offset="100%" stopColor={MODERN_COLORS.text.dark} />
+                                    </linearGradient>
+                                    <linearGradient id="colorTask" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0%" stopColor={MODERN_COLORS.task.light} />
+                                        <stop offset="100%" stopColor={MODERN_COLORS.task.dark} />
+                                    </linearGradient>
+                                    <linearGradient id="colorLink" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0%" stopColor={MODERN_COLORS.link.light} />
+                                        <stop offset="100%" stopColor={MODERN_COLORS.link.dark} />
+                                    </linearGradient>
+                                    <linearGradient id="colorImage" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0%" stopColor={MODERN_COLORS.image.light} />
+                                        <stop offset="100%" stopColor={MODERN_COLORS.image.dark} />
+                                    </linearGradient>
+                                    {/* Add shadow filter for depth */}
+                                    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                                        <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#000" floodOpacity="0.15" />
+                                    </filter>
+                                </defs>
                                 <Pie
                                     data={stats.typeData}
                                     cx="50%"
                                     cy="50%"
                                     labelLine={false}
-                                    label={renderCustomizedLabel}
-                                    outerRadius={80}
+                                    label={false} // Remove direct labels from pie
+                                    outerRadius={85}
+                                    innerRadius={50} // Increase for donut chart
                                     fill="#8884d8"
                                     dataKey="value"
                                     nameKey="name"
-                                    paddingAngle={4}
+                                    paddingAngle={5}
                                     animationDuration={750}
+                                    filter="url(#shadow)" // Apply shadow
+                                    cornerRadius={5} // Rounded corners
                                 >
-                                    {stats.typeData.map((entry, index) => (
-                                        <MotionCell 
-                                            key={`cell-${index}`} 
-                                            fill={entry.color}
-                                            animate={{
-                                                opacity: activeIndex === null || activeIndex === index ? 1 : 0.6,
-                                                scale: activeIndex === index ? 1.05 : 1
-                                            }}
-                                            initial={{ opacity: 0 }}
-                                            exit={{ opacity: 0 }}
-                                            whileHover={{ scale: 1.05 }}
-                                            transition={{ duration: 0.3 }}
-                                            onMouseEnter={() => handleMouseEnter(entry, index)}
-                                            onMouseLeave={handleMouseLeave}
-                                        />
-                                    ))}
+                                    {stats.typeData.map((entry, index) => {
+                                        // Use fixed colors instead of gradients
+                                        let fillColor;
+                                        switch(entry.name) {
+                                            case 'Text': fillColor = MODERN_COLORS.text.main; break;
+                                            case 'Task': fillColor = MODERN_COLORS.task.main; break;
+                                            case 'Link': fillColor = MODERN_COLORS.link.main; break;
+                                            case 'Image': fillColor = MODERN_COLORS.image.main; break;
+                                            default: fillColor = entry.color;
+                                        }
+                                        
+                                        return (
+                                            <Cell 
+                                                key={`cell-${index}`} 
+                                                fill={fillColor}
+                                                stroke="#ffffff"
+                                                strokeWidth={3}
+                                            />
+                                        );
+                                    })}
                                 </Pie>
-                                <Tooltip content={<CustomTooltip />} />
+                                
+                                {/* Simple and clean center text without a background */}
+                                <text 
+                                    x="50%" 
+                                    y="50%" 
+                                    textAnchor="middle" 
+                                    dominantBaseline="central"
+                                >
+                                    <tspan 
+                                        x="50%" 
+                                        y="45%"
+                                        fontSize="24" 
+                                        fontWeight="bold" 
+                                        fill="#111827"  
+                                    >
+                                        {notes.length}
+                                    </tspan>
+                                    <tspan 
+                                        x="50%" 
+                                        y="62%"
+                                        fontSize="12" 
+                                        fontWeight="500" 
+                                        fill="#4b5563"
+                                    >
+                                        Total
+                                    </tspan>
+                                </text>
+                                
+                                <Tooltip 
+                                    content={<CustomTooltip />} 
+                                    formatter={(value, name) => [`${value} (${((value as number / notes.length) * 100).toFixed(0)}%)`, name]}
+                                    wrapperStyle={{ outline: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', borderRadius: '8px' }}
+                                    cursor={{ fill: 'transparent' }}
+                                />
+                                <Legend 
+                                    layout="horizontal" 
+                                    verticalAlign="bottom" 
+                                    align="center"
+                                    wrapperStyle={{ paddingTop: '20px' }}
+                                    formatter={(value, entry) => {
+                                        // Get the corresponding color based on the name
+                                        let color;
+                                        switch(value) {
+                                            case 'Text': color = MODERN_COLORS.text.main; break;
+                                            case 'Task': color = MODERN_COLORS.task.main; break;
+                                            case 'Link': color = MODERN_COLORS.link.main; break;
+                                            case 'Image': color = MODERN_COLORS.image.main; break;
+                                            default: color = '#4b5563';
+                                        }
+                                        
+                                        // Find the percent for this item
+                                        const item = stats.typeData.find(item => item.name === value);
+                                        const percent = item ? Math.round((item.value / notes.length) * 100) : 0;
+                                        
+                                        return (
+                                            <span style={{ color: '#4b5563', fontWeight: 500, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                <span style={{ color, fontSize: '16px' }}>■</span> {value} 
+                                                <span style={{ fontWeight: 400, marginLeft: '4px' }}>
+                                                    ({percent}%)
+                                                </span>
+                            </span>
+                                        );
+                                    }}
+                                    iconSize={0} // Hide default icon since we're using our own
+                                />
                             </PieChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -340,9 +464,9 @@ const Analytics: React.FC<AnalyticsProps> = ({ notes, onViewFullReport }) => {
                                 )
                             ))}
                         </AreaChart>
-                    </ResponsiveContainer>
-                </CardContent>
-            </Card>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
 
             {/* Insight Card */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -357,9 +481,9 @@ const Analytics: React.FC<AnalyticsProps> = ({ notes, onViewFullReport }) => {
                     </CardHeader>
                     <CardContent className="h-64">
                         {stats.topTags.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%">
                                 <BarChart 
-                                    data={stats.topTags} 
+                                    data={stats.topTags}
                                     layout="vertical"
                                     margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
                                 >
@@ -387,7 +511,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ notes, onViewFullReport }) => {
                                         />
                                     ))}
                                 </BarChart>
-                            </ResponsiveContainer>
+                        </ResponsiveContainer>
                         ) : (
                             <div className="flex items-center justify-center h-full">
                                 <p className="text-gray-500">Add tags to your notes to see analytics</p>
