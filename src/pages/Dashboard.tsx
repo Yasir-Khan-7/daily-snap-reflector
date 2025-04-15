@@ -1,30 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import SearchBar from '@/components/SearchBar';
-import NoteInput from '@/components/NoteInput';
-import NoteList from '@/components/NoteList';
 import Analytics from '@/components/Analytics';
 import { Note } from '@/types/Note';
 import { Layout } from '@/components/ui/layout';
 import { toast } from '@/hooks/use-toast';
-import { v4 as uuidv4 } from 'uuid';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { X, BarChart3, FileText, CalendarClock, ListTodo, Plus, Filter } from 'lucide-react';
-import TabView from '@/components/ui/tabs-view';
-import PomodoroTimer from '@/components/PomodoroTimer';
-import HabitTracker from '@/components/HabitTracker';
-import AIAssistant from '@/components/AIAssistant';
+import { Link } from 'react-router-dom';
+import { 
+  BarChart3, 
+  FileText, 
+  CalendarClock, 
+  ListTodo, 
+  Plus, 
+  ChevronRight,
+  Calendar,
+  CheckCircle,
+  Activity,
+  TrendingUp,
+  Clock,
+  Book,
+  BarChart2,
+  PieChart,
+  BrainCircuit
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [notes, setNotes] = useState<Note[]>([]);
-  const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeTags, setActiveTags] = useState<string[]>([]);
-  const [allTags, setAllTags] = useState<string[]>([]);
+  
+  // Calculate metrics
+  const totalNotes = notes.length;
+  const completedTasks = notes.filter(note => note.type === 'task' && note.completed).length;
+  const pendingTasks = notes.filter(note => note.type === 'task' && !note.completed).length;
+  const tasksCompletionRate = totalNotes > 0 ? Math.round((completedTasks / (completedTasks + pendingTasks)) * 100) : 0;
+  
+  // Get today's date for greeting
+  const now = new Date();
+  const hours = now.getHours();
+  let greeting = "Good morning";
+  if (hours >= 12 && hours < 17) {
+    greeting = "Good afternoon";
+  } else if (hours >= 17) {
+    greeting = "Good evening";
+  }
 
   useEffect(() => {
     const fetchNotes = async () => {
@@ -51,16 +73,6 @@ const Dashboard: React.FC = () => {
         }));
 
         setNotes(formattedNotes);
-        setFilteredNotes(formattedNotes);
-
-        // Extract all unique tags
-        const tagsSet = new Set<string>();
-        formattedNotes.forEach(note => {
-          if (note.tags) {
-            note.tags.forEach(tag => tagsSet.add(tag));
-          }
-        });
-        setAllTags(Array.from(tagsSet));
       } catch (error: any) {
         toast({
           variant: "destructive",
@@ -75,336 +87,338 @@ const Dashboard: React.FC = () => {
     fetchNotes();
   }, [user]);
 
-  useEffect(() => {
-    // Apply both search and tag filters
-    let filtered = notes;
+  const getRecentActivity = () => {
+    const lastWeekNotes = notes.filter(note => {
+      const diff = Math.floor((now.getTime() - note.createdAt.getTime()) / (1000 * 60 * 60 * 24));
+      return diff <= 7;
+    });
+    
+    return lastWeekNotes.length;
+  };
 
-    // Apply search filter
-    if (searchQuery.trim() !== '') {
-      filtered = filtered.filter(note =>
-        note.content.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+  // Calculate streak
+  const calculateStreak = () => {
+    if (notes.length === 0) return 0;
+    
+    const sortedNotes = [...notes].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    
+    let streak = 0;
+    let currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+    
+    // Check if there's a note from today
+    const todayNotes = sortedNotes.filter(note => {
+      const noteDate = new Date(note.createdAt);
+      noteDate.setHours(0, 0, 0, 0);
+      return noteDate.getTime() === currentDate.getTime();
+    });
+    
+    if (todayNotes.length === 0) {
+      return 0; // Streak broken if no notes today
     }
-
-    // Apply tag filter
-    if (activeTags.length > 0) {
-      filtered = filtered.filter(note =>
-        note.tags && activeTags.some(tag => note.tags!.includes(tag))
-      );
-    }
-
-    setFilteredNotes(filtered);
-  }, [searchQuery, activeTags, notes]);
-
-  const handleAddNote = async (newNote: Note) => {
-    if (!user) return;
-
-    try {
-      const noteData = {
-        id: newNote.id,
-        user_id: user.id,
-        content: newNote.content,
-        type: newNote.type,
-        created_at: newNote.createdAt.toISOString(),
-        completed: newNote.completed || false,
-        image_url: newNote.imageUrl || null,
-        tags: newNote.tags || []
-      };
-
-      const { error } = await supabase.from('notes').insert(noteData);
-
-      if (error) {
-        throw error;
+    
+    streak = 1; // Start with today
+    
+    // Check backward for consecutive days
+    for (let i = 1; i <= 30; i++) { // Check up to 30 days back
+      const checkDate = new Date(currentDate);
+      checkDate.setDate(checkDate.getDate() - i);
+      
+      const notesOnDate = sortedNotes.filter(note => {
+        const noteDate = new Date(note.createdAt);
+        noteDate.setHours(0, 0, 0, 0);
+        return noteDate.getTime() === checkDate.getTime();
+      });
+      
+      if (notesOnDate.length === 0) {
+        break;
       }
-
-      const updatedNotes = [newNote, ...notes];
-      setNotes(updatedNotes);
-
-      // Update all tags
-      if (newNote.tags && newNote.tags.length > 0) {
-        const updatedTags = [...allTags];
-        newNote.tags.forEach(tag => {
-          if (!updatedTags.includes(tag)) {
-            updatedTags.push(tag);
-          }
-        });
-        setAllTags(updatedTags);
-      }
-
-      toast({
-        title: "Success",
-        description: "Note added successfully",
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to add note: " + error.message,
-      });
+      
+      streak++;
     }
+    
+    return streak;
   };
-
-  const handleDeleteNote = async (id: string) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase.from('notes').delete().eq('id', id);
-
-      if (error) {
-        throw error;
-      }
-
-      const updatedNotes = notes.filter(note => note.id !== id);
-      setNotes(updatedNotes);
-      setFilteredNotes(updatedNotes);
-
-      toast({
-        title: "Success",
-        description: "Note deleted successfully",
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to delete note: " + error.message,
-      });
-    }
-  };
-
-  const handleToggleTask = async (id: string) => {
-    if (!user) return;
-
-    try {
-      // Find the note to toggle
-      const noteToToggle = notes.find(note => note.id === id && note.type === 'task');
-
-      if (!noteToToggle) return;
-
-      const newCompletedState = !noteToToggle.completed;
-
-      // Update the note in the database
-      const { error } = await supabase
-        .from('notes')
-        .update({ completed: newCompletedState })
-        .eq('id', id);
-
-      if (error) {
-        throw error;
-      }
-
-      // Update local state
-      const updatedNotes = notes.map(note =>
-        note.id === id && note.type === 'task'
-          ? { ...note, completed: newCompletedState }
-          : note
-      );
-
-      setNotes(updatedNotes);
-      setFilteredNotes(updatedNotes);
-
-      toast({
-        title: "Success",
-        description: `Task marked as ${newCompletedState ? 'completed' : 'incomplete'}`,
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update task: " + error.message,
-      });
-    }
-  };
-
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-  };
-
-  const toggleTag = (tag: string) => {
-    setActiveTags(currentTags =>
-      currentTags.includes(tag)
-        ? currentTags.filter(t => t !== tag)
-        : [...currentTags, tag]
-    );
-  };
-
-  const clearFilters = () => {
-    setSearchQuery('');
-    setActiveTags([]);
-  };
-
-  // Define tab content components
-  const NotesTabContent = () => (
-    <div className="container mx-auto max-w-5xl px-4">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <div className="w-full md:w-2/3">
-          <SearchBar onSearch={handleSearch} />
-        </div>
-
-        {allTags.length > 0 && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-1"
-              onClick={() => document.getElementById('tags-filter')?.classList.toggle('hidden')}
-            >
-              <Filter className="h-4 w-4" />
-              Filter by Tags
-            </Button>
-
-            {(activeTags.length > 0 || searchQuery) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="text-xs flex items-center gap-1"
-              >
-                <X size={14} /> Clear
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div id="tags-filter" className="mb-6 hidden">
-        <div className="p-4 bg-gray-50 rounded-lg border">
-          <h3 className="text-sm font-medium mb-3">Available Tags:</h3>
-          <div className="flex flex-wrap gap-2">
-            {allTags.map(tag => (
-              <Badge
-                key={tag}
-                variant={activeTags.includes(tag) ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => toggleTag(tag)}
-              >
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="mb-8">
-        <NoteInput onAddNote={handleAddNote} />
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center my-12">
-          <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full"></div>
-        </div>
-      ) : filteredNotes.length > 0 ? (
-        <NoteList
-          notes={filteredNotes}
-          onDeleteNote={handleDeleteNote}
-          onToggleTask={handleToggleTask}
-        />
-      ) : (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
-          <p className="text-gray-600">No notes found. Add your first note above!</p>
-          <Button variant="outline" className="mt-4 gap-2" onClick={() => document.getElementById('tag-input')?.focus()}>
-            <Plus size={16} />
-            Add Note
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-
-  const TasksTabContent = () => (
-    <div className="container mx-auto max-w-5xl px-4 py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-          <ListTodo className="h-5 w-5 text-green-500" />
-          Task Manager
-        </h2>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            {notes.filter(note => note.type === 'task' && note.completed).length} Completed
-          </Badge>
-          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-            {notes.filter(note => note.type === 'task' && !note.completed).length} Pending
-          </Badge>
-        </div>
-      </div>
-
-      <NoteList
-        notes={notes.filter(note => note.type === 'task')}
-        onDeleteNote={handleDeleteNote}
-        onToggleTask={handleToggleTask}
-      />
-
-      {notes.filter(note => note.type === 'task').length === 0 && (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
-          <p className="text-gray-600">No tasks found. Create a new task using the Notes tab.</p>
-          <Button
-            variant="outline"
-            className="mt-4 gap-2"
-            onClick={() => {
-              // Switch to Notes tab
-              const notesTab = document.querySelector('[value="notes"]');
-              if (notesTab) {
-                (notesTab as HTMLElement).click();
-
-                // Wait for tab to switch, then set task type and focus
-                setTimeout(() => {
-                  // Find and click the Task tab in the note input
-                  const taskTab = document.querySelector('[value="task"]');
-                  if (taskTab) {
-                    (taskTab as HTMLElement).click();
-                  }
-
-                  // Focus on the textarea
-                  const textarea = document.querySelector('textarea');
-                  if (textarea) {
-                    textarea.focus();
-                  }
-                }, 100);
-              }
-            }}
-          >
-            <Plus size={16} />
-            Add Task
-          </Button>
-        </div>
-      )}
-    </div>
-  );
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex flex-col gap-6">
-          {/* AI Assistant Section */}
-          <AIAssistant notes={notes} />
+      <div className="container px-4 py-6 max-w-7xl mx-auto">
+        {/* Header with greeting */}
+        <div className="mb-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{greeting}, {user?.email?.split('@')[0]}</h1>
+              <p className="text-gray-500 mt-1">Here's a summary of your productivity and reflections</p>
+        </div>
+            <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+                className="flex items-center gap-2 hover:bg-purple-50 hover:text-purple-700 transition-colors"
+                asChild
+              >
+                <Link to="/notes">
+                  <FileText className="h-4 w-4" />
+                  <span>View All Notes</span>
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+            </Button>
+              <Button
+                variant="default"
+                size="sm"
+                className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 transition-colors shadow-sm hover:shadow"
+                asChild
+              >
+                <Link to="/notes">
+                  <Plus className="h-4 w-4" />
+                  <span>New Note</span>
+                </Link>
+              </Button>
+      </div>
+          </div>
+        </div>
 
-          {/* Main Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Notes and Tasks */}
-            <div className="lg:col-span-2 space-y-6">
-              <TabView
-                tabs={[
-                  {
-                    id: 'notes',
-                    label: 'Notes',
-                    icon: <FileText className="h-4 w-4" />,
-                    content: <NotesTabContent />
-                  },
-                  {
-                    id: 'tasks',
-                    label: 'Tasks',
-                    icon: <ListTodo className="h-4 w-4" />,
-                    content: <TasksTabContent />
-                  }
-                ]}
-              />
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+          <Card className="border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden group">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-purple-600/5 rounded-bl-full group-hover:bg-purple-600/10 transition-colors"></div>
+            <CardContent className="pt-6 pb-6">
+              <div className="flex items-start">
+                <div className="p-2 bg-purple-100 rounded-lg mr-4 group-hover:bg-purple-200 transition-colors">
+                  <Book className="h-7 w-7 text-purple-600" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm text-gray-500 font-medium">Total Notes</span>
+                  <span className="text-3xl font-bold text-gray-900">{totalNotes}</span>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center text-sm text-gray-500">
+                <Activity className="h-4 w-4 mr-1" />
+                <span>{getRecentActivity()} new in last 7 days</span>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden group">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-green-600/5 rounded-bl-full group-hover:bg-green-600/10 transition-colors"></div>
+            <CardContent className="pt-6 pb-6">
+              <div className="flex items-start">
+                <div className="p-2 bg-green-100 rounded-lg mr-4 group-hover:bg-green-200 transition-colors">
+                  <CheckCircle className="h-7 w-7 text-green-600" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm text-gray-500 font-medium">Tasks Completed</span>
+                  <span className="text-3xl font-bold text-gray-900">{completedTasks}</span>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center text-sm text-gray-500">
+                <span className="flex items-center">
+                  <TrendingUp className="h-4 w-4 mr-1 text-green-500" />
+                  <span>{tasksCompletionRate}% completion rate</span>
+                </span>
+      </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden group">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-blue-600/5 rounded-bl-full group-hover:bg-blue-600/10 transition-colors"></div>
+            <CardContent className="pt-6 pb-6">
+              <div className="flex items-start">
+                <div className="p-2 bg-blue-100 rounded-lg mr-4 group-hover:bg-blue-200 transition-colors">
+                  <Calendar className="h-7 w-7 text-blue-600" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm text-gray-500 font-medium">Current Streak</span>
+                  <span className="text-3xl font-bold text-gray-900">{calculateStreak()}</span>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center text-sm text-gray-500">
+                <Clock className="h-4 w-4 mr-1" />
+                <span>Days of consistent reflection</span>
+      </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden group">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-amber-600/5 rounded-bl-full group-hover:bg-amber-600/10 transition-colors"></div>
+            <CardContent className="pt-6 pb-6">
+              <div className="flex items-start">
+                <div className="p-2 bg-amber-100 rounded-lg mr-4 group-hover:bg-amber-200 transition-colors">
+                  <ListTodo className="h-7 w-7 text-amber-600" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm text-gray-500 font-medium">Pending Tasks</span>
+                  <span className="text-3xl font-bold text-gray-900">{pendingTasks}</span>
+                </div>
+        </div>
+              <div className="mt-4 flex justify-between items-center">
+                <span className="text-sm text-gray-500 flex items-center">
+                  <CalendarClock className="h-4 w-4 mr-1" />
+                  <span>Waiting for completion</span>
+                </span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-xs hover:bg-amber-50 text-amber-700"
+                  asChild
+                >
+                  <Link to="/notes">View</Link>
+          </Button>
+        </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Motivational Quote */}
+        <Card className="border-0 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 shadow-sm hover:shadow-md transition-all mb-8">
+          <CardContent className="pt-6 pb-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/80 rounded-full">
+                <TrendingUp className="h-6 w-6 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold mb-1 text-gray-800">Daily Reminder</h3>
+                <p className="text-gray-700 italic">
+                  "Small daily improvements are the key to staggering long-term results. What you do today matters more than what you plan to do tomorrow."
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Main Dashboard Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Analytics Charts */}
+          <div className="lg:col-span-2">
+            <Card className="border-gray-200 shadow-sm hover:shadow-md transition-all h-full">
+              <CardHeader className="pb-2 border-b">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl flex items-center gap-2">
+                      <BarChart2 className="h-5 w-5 text-purple-500" />
+                      Analytics Overview
+                    </CardTitle>
+                    <CardDescription>Visual insights into your productivity and habits</CardDescription>
+                  </div>
+                  <Tabs defaultValue="distribution">
+                    <TabsList className="bg-gray-100">
+                      <TabsTrigger value="distribution" className="text-xs">
+                        <PieChart className="h-3 w-3 mr-1" />
+                        Distribution
+                      </TabsTrigger>
+                      <TabsTrigger value="timeline" className="text-xs">
+                        <BarChart3 className="h-3 w-3 mr-1" />
+                        Timeline
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <Analytics notes={notes} onViewFullReport={() => {
+                  toast({
+                    title: "Full Report",
+                    description: "Detailed analytics report is now available",
+                  });
+                }} />
+              </CardContent>
+            </Card>
+      </div>
+
+          {/* Tools & Quick Links */}
+          <div className="lg:col-span-1">
+            <Card className="border-gray-200 shadow-sm hover:shadow-md transition-all h-full">
+              <CardHeader className="pb-2 border-b">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-purple-500" />
+                  Productivity Tools
+                </CardTitle>
+                <CardDescription>Track your habits and focus time</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6 grid gap-4">
+                <div className="hover:bg-indigo-50 p-4 rounded-lg transition-colors group">
+                  <h3 className="font-medium flex items-center gap-2 mb-1 group-hover:text-indigo-700 transition-colors">
+                    <BrainCircuit className="h-4 w-4 text-indigo-500" />
+                    AI Assistant
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-2">Your personal AI guide to help with any questions about the app or your data</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="mt-2 group-hover:bg-indigo-100 group-hover:text-indigo-700 group-hover:border-indigo-200 transition-colors"
+                    asChild
+                  >
+                    <Link to="/assistant">
+                      Open Assistant
+                    </Link>
+                  </Button>
+                </div>
+                
+                <div className="hover:bg-purple-50 p-4 rounded-lg transition-colors group">
+                  <h3 className="font-medium flex items-center gap-2 mb-1 group-hover:text-purple-700 transition-colors">
+                    <CalendarClock className="h-4 w-4 text-purple-500" />
+                    Pomodoro Focus Timer
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-2">Boost your productivity with timed focus sessions</p>
+          <Button
+            variant="outline"
+                    size="sm"
+                    className="mt-2 group-hover:bg-purple-100 group-hover:text-purple-700 group-hover:border-purple-200 transition-colors"
+                    asChild
+                  >
+                    <Link to="/pomodoro">
+                      Start Session
+                    </Link>
+          </Button>
+        </div>
+                
+                <div className="hover:bg-green-50 p-4 rounded-lg transition-colors group">
+                  <h3 className="font-medium flex items-center gap-2 mb-1 group-hover:text-green-700 transition-colors">
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    Habit Tracker
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-2">Build consistency with daily habit tracking</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="mt-2 group-hover:bg-green-100 group-hover:text-green-700 group-hover:border-green-200 transition-colors"
+                    asChild
+                  >
+                    <Link to="/habits">
+                      View Habits
+                    </Link>
+                  </Button>
+    </div>
+                
+                <div className="hover:bg-blue-50 p-4 rounded-lg transition-colors group">
+                  <h3 className="font-medium flex items-center gap-2 mb-1 group-hover:text-blue-700 transition-colors">
+                    <FileText className="h-4 w-4 text-blue-500" />
+                    Latest Reflections
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-2">View your most recent notes and journal entries</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="mt-2 group-hover:bg-blue-100 group-hover:text-blue-700 group-hover:border-blue-200 transition-colors"
+                    asChild
+                  >
+                    <Link to="/notes">View Notes</Link>
+                  </Button>
             </div>
 
-            {/* Right Column - Tools */}
-            <div className="space-y-6">
-              <PomodoroTimer />
-              <HabitTracker />
-              <Analytics notes={notes} />
-            </div>
+                {/* Link to full settings */}
+                <Button 
+                  variant="ghost" 
+                  className="mt-2 hover:bg-purple-50 text-gray-600 hover:text-purple-700 transition-colors w-full justify-between"
+                  asChild
+                >
+                  <Link to="/settings">
+                    <span>View all settings and tools</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

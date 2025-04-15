@@ -1,18 +1,66 @@
-
 import React from 'react';
 import { Note } from '@/types/Note';
 import { Trash2, CheckCircle2, Circle, Link, FileText, Image } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/use-toast";
 
 interface NoteListProps {
   notes: Note[];
   onDeleteNote: (id: string) => void;
-  onToggleTask?: (id: string) => void;
+  onToggleTask: (id: string, completed: boolean) => void;
+  onTagClick: (tag: string) => void;
 }
 
-const NoteList: React.FC<NoteListProps> = ({ notes, onDeleteNote, onToggleTask }) => {
+const NoteList: React.FC<NoteListProps> = ({ notes, onDeleteNote, onToggleTask, onTagClick }) => {
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      onDeleteNote(id);
+      toast({
+        title: "Success",
+        description: "Note deleted successfully",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete note: " + error.message,
+      });
+    }
+  };
+
+  const handleToggleTask = async (id: string, completed: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .update({ completed })
+        .eq('id', id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      onToggleTask(id, completed);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update task status: " + error.message,
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
       {notes.map((note) => (
@@ -24,7 +72,7 @@ const NoteList: React.FC<NoteListProps> = ({ notes, onDeleteNote, onToggleTask }
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => onToggleTask && onToggleTask(note.id)}
+                    onClick={() => handleToggleTask(note.id, !note.completed)}
                     className="p-0 h-auto w-auto hover:bg-transparent"
                   >
                     {note.completed ? (
@@ -87,7 +135,7 @@ const NoteList: React.FC<NoteListProps> = ({ notes, onDeleteNote, onToggleTask }
               <Button
                 variant="ghost" 
                 size="icon"
-                onClick={() => onDeleteNote(note.id)}
+                onClick={() => handleDelete(note.id)}
                 className="text-red-500 hover:text-red-700 hover:bg-red-50"
               >
                 <Trash2 size={18} />

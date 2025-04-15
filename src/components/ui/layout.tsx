@@ -9,11 +9,15 @@ import {
   BarChart3,
   Menu,
   X,
-  FileText
+  FileText,
+  BrainCircuit,
+  Clock,
+  CheckCircle,
+  ChevronRight
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 type NavLinkProps = {
@@ -32,16 +36,17 @@ const NavLink = ({ href, icon, children, className, onClick }: NavLinkProps) => 
     <Link
       to={href}
       className={cn(
-        "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
+        "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 relative group",
         isActive
-          ? "bg-purple-100 text-purple-900 font-medium"
-          : "text-gray-600 hover:bg-gray-100",
+          ? "bg-purple-100 text-purple-900 shadow-sm"
+          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
         className
       )}
       onClick={onClick}
     >
-      {icon && <span className="w-4 h-4">{icon}</span>}
+      {icon && <span className="w-4 h-4 transition-transform group-hover:scale-110">{icon}</span>}
       {children}
+      {!isActive && <span className="absolute left-0 top-0 h-full w-0 bg-purple-100 rounded-lg opacity-0 transition-all duration-300 group-hover:w-1 group-hover:opacity-100"></span>}
     </Link>
   );
 };
@@ -59,17 +64,21 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-30 w-full border-b bg-white shadow-sm">
+    <header className="sticky top-0 z-30 w-full border-b backdrop-blur-sm bg-white/90 shadow-sm">
       <div className="container flex h-16 items-center justify-between">
         {/* Logo and Nav for Desktop */}
         <div className="flex items-center gap-8">
-          <Link to="/dashboard" className="flex items-center gap-2">
+          <Link to="/dashboard" className="flex items-center gap-2 group transition-transform hover:scale-105">
+            <img src="/logo.png" alt="Daily Snap" className="h-8 w-8 transition-transform group-hover:rotate-12" />
             <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 text-transparent bg-clip-text">Daily Snap</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-5">
+          <nav className="hidden md:flex items-center gap-3">
             <NavLink href="/dashboard" icon={<Home className="h-4 w-4" />}>Dashboard</NavLink>
             <NavLink href="/notes" icon={<FileText className="h-4 w-4" />}>All Notes</NavLink>
+            <NavLink href="/assistant" icon={<BrainCircuit className="h-4 w-4" />}>AI Assistant</NavLink>
+            <NavLink href="/pomodoro" icon={<Clock className="h-4 w-4" />}>Pomodoro</NavLink>
+            <NavLink href="/habits" icon={<CheckCircle className="h-4 w-4" />}>Habits</NavLink>
           </nav>
         </div>
 
@@ -78,15 +87,15 @@ export const Header: React.FC = () => {
           <div className="hidden md:flex items-center gap-4">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 bg-purple-50">
-                  <Avatar className="h-8 w-8 border border-purple-200">
-                    <AvatarFallback className="bg-purple-100 text-purple-700 text-xs font-medium">
+                <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 bg-purple-50 hover:bg-purple-100 hover:scale-105 transition-all">
+                  <Avatar className="h-8 w-8 border border-purple-200 ring-2 ring-purple-500/20 transition-all hover:ring-purple-500/50">
+                    <AvatarFallback className="bg-gradient-to-br from-purple-600 to-indigo-600 text-white text-xs font-medium">
                       {getUserInitials()}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl shadow-lg animate-in fade-in-80 zoom-in-95">
                 <DropdownMenuLabel>
                   <div className="flex flex-col">
                     <span>My Account</span>
@@ -94,20 +103,38 @@ export const Header: React.FC = () => {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/dashboard" className="cursor-pointer">
+                <DropdownMenuItem asChild className="hover:bg-purple-50 rounded-lg p-2 transition-colors flex items-center cursor-pointer">
+                  <Link to="/dashboard">
                     <Home className="mr-2 h-4 w-4" />
                     <span>Dashboard</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/notes" className="cursor-pointer">
+                <DropdownMenuItem asChild className="hover:bg-purple-50 rounded-lg p-2 transition-colors flex items-center cursor-pointer">
+                  <Link to="/notes">
                     <FileText className="mr-2 h-4 w-4" />
                     <span>All Notes</span>
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild className="hover:bg-purple-50 rounded-lg p-2 transition-colors flex items-center cursor-pointer">
+                  <Link to="/assistant">
+                    <BrainCircuit className="mr-2 h-4 w-4" />
+                    <span>AI Assistant</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="hover:bg-purple-50 rounded-lg p-2 transition-colors flex items-center cursor-pointer">
+                  <Link to="/pomodoro">
+                    <Clock className="mr-2 h-4 w-4" />
+                    <span>Pomodoro Timer</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="hover:bg-purple-50 rounded-lg p-2 transition-colors flex items-center cursor-pointer">
+                  <Link to="/habits">
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    <span>Habit Tracker</span>
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut} className="cursor-pointer text-red-600 focus:text-red-600">
+                <DropdownMenuItem onClick={signOut} className="hover:bg-red-50 text-red-600 rounded-lg p-2 transition-colors flex items-center cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Sign out</span>
                 </DropdownMenuItem>
@@ -118,7 +145,7 @@ export const Header: React.FC = () => {
           {/* Mobile Menu */}
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild className="md:hidden">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="rounded-full hover:bg-purple-50 transition-colors">
                 {isMenuOpen ? (
                   <X className="h-5 w-5" />
                 ) : (
@@ -126,11 +153,11 @@ export const Header: React.FC = () => {
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[250px] sm:max-w-none">
+            <SheetContent side="right" className="w-[280px] sm:max-w-none bg-white/95 backdrop-blur-sm border-l border-purple-100">
               <div className="flex flex-col gap-6 pt-6">
                 <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10 border border-purple-200">
-                    <AvatarFallback className="bg-purple-100 text-purple-700">
+                  <Avatar className="h-10 w-10 border border-purple-200 ring-2 ring-purple-500/20">
+                    <AvatarFallback className="bg-gradient-to-br from-purple-600 to-indigo-600 text-white">
                       {getUserInitials()}
                     </AvatarFallback>
                   </Avatar>
@@ -157,13 +184,34 @@ export const Header: React.FC = () => {
                     All Notes
                   </NavLink>
                   <NavLink
+                    href="/assistant"
+                    icon={<BrainCircuit className="h-4 w-4" />}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    AI Assistant
+                  </NavLink>
+                  <NavLink
+                    href="/pomodoro"
+                    icon={<Clock className="h-4 w-4" />}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Pomodoro Timer
+                  </NavLink>
+                  <NavLink
+                    href="/habits"
+                    icon={<CheckCircle className="h-4 w-4" />}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Habit Tracker
+                  </NavLink>
+                  <NavLink
                     href="/auth"
                     icon={<LogOut className="h-4 w-4" />}
                     onClick={() => {
                       signOut();
                       setIsMenuOpen(false);
                     }}
-                    className="text-red-500 hover:text-red-600"
+                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
                   >
                     Sign Out
                   </NavLink>
@@ -179,12 +227,17 @@ export const Header: React.FC = () => {
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-purple-50/50 via-white to-blue-50/30">
       <Header />
       <main className="flex-1">{children}</main>
-      <footer className="border-t bg-white py-4 text-center text-sm text-gray-500">
+      <footer className="border-t backdrop-blur-sm bg-white/80 py-5 text-center text-sm text-gray-500">
         <div className="container">
-          <p>Daily Snap &copy; {new Date().getFullYear()} - Your daily reflection companion</p>
+          <p className="flex items-center justify-center gap-1">
+            <span className="text-purple-600 font-semibold">Daily Snap</span> 
+            <span>&copy; {new Date().getFullYear()}</span>
+            <span>-</span>
+            <span>Your daily reflection companion</span>
+          </p>
         </div>
       </footer>
     </div>

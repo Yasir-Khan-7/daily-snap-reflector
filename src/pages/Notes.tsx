@@ -9,7 +9,7 @@ import { Layout } from '@/components/ui/layout';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { X, FileText, Filter } from 'lucide-react';
+import { X, FileText, Filter, Plus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Notes: React.FC = () => {
@@ -124,21 +124,14 @@ const Notes: React.FC = () => {
         }
     };
 
-    const handleToggleTask = async (id: string) => {
+    const handleToggleTask = async (id: string, completed: boolean) => {
         if (!user) return;
 
         try {
-            // Find the note to toggle
-            const noteToToggle = notes.find(note => note.id === id && note.type === 'task');
-
-            if (!noteToToggle) return;
-
-            const newCompletedState = !noteToToggle.completed;
-
             // Update the note in the database
             const { error } = await supabase
                 .from('notes')
-                .update({ completed: newCompletedState })
+                .update({ completed })
                 .eq('id', id);
 
             if (error) {
@@ -147,8 +140,8 @@ const Notes: React.FC = () => {
 
             // Update local state
             const updatedNotes = notes.map(note =>
-                note.id === id && note.type === 'task'
-                    ? { ...note, completed: newCompletedState }
+                note.id === id
+                    ? { ...note, completed }
                     : note
             );
 
@@ -157,7 +150,7 @@ const Notes: React.FC = () => {
 
             toast({
                 title: "Success",
-                description: `Task marked as ${newCompletedState ? 'completed' : 'incomplete'}`,
+                description: `Task marked as ${completed ? 'completed' : 'incomplete'}`,
             });
         } catch (error: any) {
             toast({
@@ -198,13 +191,81 @@ const Notes: React.FC = () => {
     const linkNotesCount = notes.filter(note => note.type === 'link').length;
     const imageNotesCount = notes.filter(note => note.type === 'image').length;
 
+    const handleTagClick = (tag: string) => {
+        toggleTag(tag);
+    };
+
     return (
         <Layout>
             <div className="max-w-6xl mx-auto py-8 px-4">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">All Notes</h1>
-                    <p className="text-gray-600 mt-1">Browse and manage all your captured thoughts</p>
+                <div className="flex justify-between items-center mb-8">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight text-gray-900">All Notes</h1>
+                        <p className="text-gray-600 mt-1">Browse and manage all your captured thoughts</p>
+                    </div>
                 </div>
+
+                {/* Note Input Section */}
+                <Card className="mb-8 border-purple-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
+                    <CardHeader className="bg-gradient-to-r from-purple-50 to-indigo-50 pb-2">
+                        <CardTitle className="text-xl">Create New Note</CardTitle>
+                        <CardDescription>Capture your thoughts, tasks, links, or images</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                        <NoteInput 
+                            onAddNote={(note: Note) => {
+                                // Add note to Supabase
+                                const saveNoteToDatabase = async (noteData: Note) => {
+                                    if (!user) return;
+                                    
+                                    try {
+                                        const { error } = await supabase
+                                            .from('notes')
+                                            .insert({
+                                                id: noteData.id,
+                                                content: noteData.content,
+                                                type: noteData.type,
+                                                created_at: noteData.createdAt.toISOString(),
+                                                completed: noteData.completed || false,
+                                                image_url: noteData.imageUrl || null,
+                                                tags: noteData.tags || [],
+                                                user_id: user.id
+                                            });
+                                            
+                                        if (error) {
+                                            throw error;
+                                        }
+                                        
+                                        // Update local state after successful save to DB
+                                        setNotes([noteData, ...notes]);
+                                        setFilteredNotes([noteData, ...filteredNotes]);
+                                        
+                                        // Update tags if new ones are added
+                                        if (noteData.tags && noteData.tags.length > 0) {
+                                            const newTags = noteData.tags.filter(tag => !allTags.includes(tag));
+                                            if (newTags.length > 0) {
+                                                setAllTags([...allTags, ...newTags]);
+                                            }
+                                        }
+                                        
+                                        toast({
+                                            title: "Success",
+                                            description: "Note added successfully",
+                                        });
+                                    } catch (error: any) {
+                                        toast({
+                                            variant: "destructive",
+                                            title: "Error",
+                                            description: "Failed to save note: " + error.message,
+                                        });
+                                    }
+                                };
+                                
+                                saveNoteToDatabase(note);
+                            }} 
+                        />
+                    </CardContent>
+                </Card>
 
                 <div className="grid gap-6 md:grid-cols-4 mb-8">
                     <Card
@@ -320,6 +381,7 @@ const Notes: React.FC = () => {
                         notes={filteredNotes}
                         onDeleteNote={handleDeleteNote}
                         onToggleTask={handleToggleTask}
+                        onTagClick={handleTagClick}
                     />
                 ) : (
                     <div className="text-center py-12 bg-gray-50 rounded-lg">
