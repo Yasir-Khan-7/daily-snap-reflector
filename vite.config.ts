@@ -22,5 +22,17 @@ export default defineConfig(({ mode }) => ({
     assetsDir: 'assets',
     sourcemap: false,
     minify: 'terser',
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // Skip certain warnings
+        if (warning.code === 'MODULE_LEVEL_DIRECTIVE' || 
+            warning.code === 'MISSING_EXPORT' ||
+            warning.code === 'UNRESOLVED_IMPORT') {
+          return;
+        }
+        // Use default for everything else
+        warn(warning);
+      }
+    }
   }
 }));
