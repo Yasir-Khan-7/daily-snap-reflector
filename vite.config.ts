@@ -4,7 +4,7 @@ import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: mode === 'production' ? '/daily-snap-reflector/' : '/',
+  base: '/daily-snap-reflector/', // Always use this base for consistency
   server: {
     host: "::",
     port: 8080,
