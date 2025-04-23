@@ -1,32 +1,25 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { Groq } from "npm:groq";
+// Edge function for AI assistant
+// Note: This file is modified for client-side use with GitHub Pages
 
-const groqApiKey = Deno.env.get("GROQ_API_KEY");
+// Import axios or use fetch API
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+// Get API key from config
+import { GROQ_API_KEY } from '../../../src/config';
 
+// Handler function (exported for client-side use)
+export async function handleAIRequest(action, content) {
   try {
     // Log the incoming request to help with debugging
-    console.log("Received request to AI assistant:", req.url);
-
-    const { action, content } = await req.json();
     console.log(`Processing action: ${action} with content length: ${content?.length || 0}`);
 
-    if (!groqApiKey) {
-      console.error("Missing GROQ_API_KEY environment variable");
-      throw new Error("Server configuration error: Missing API key");
+    if (!GROQ_API_KEY) {
+      console.error("Missing GROQ_API_KEY");
+      throw new Error("Client configuration error: Missing API key");
     }
-
-    // Initialize the Groq client
-    const groqClient = new Groq({ apiKey: groqApiKey });
 
     let prompt = "";
 
@@ -49,73 +42,67 @@ serve(async (req) => {
 
     console.log("Sending request to Groq API");
 
-    // Fallback to use Todoist API token if Groq API is not available
-    const apiKey = groqApiKey || "sk-PLACEHOLDER-KEY-FOR-TESTING";
-
     try {
-      const chatCompletion = await groqClient.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: "You are a helpful AI assistant for a notes application called Daily Snap. Your responses should be concise, relevant, and helpful for organizing and improving the user's notes.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        model: "qwen-qwq-32b",
-        temperature: 0.7,
-        max_tokens: 250,
+      // Direct Groq API call using fetch
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${GROQ_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "system",
+              content: "You are a helpful AI assistant for a notes application called Daily Snap. Your responses should be concise, relevant, and helpful for organizing and improving the user's notes.",
+            },
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+          model: "llama3-70b-8192",
+          temperature: 0.7,
+          max_tokens: 250,
+        })
       });
 
-      const response = chatCompletion.choices[0]?.message?.content || "No response generated";
+      if (!response.ok) {
+        throw new Error(`Groq API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const aiResponse = data.choices[0]?.message?.content || "No response generated";
       console.log("Received response from Groq API");
 
-      return new Response(JSON.stringify({ response }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return { response: aiResponse };
     } catch (groqError) {
       console.error("Groq API error:", groqError);
 
       // If Groq API fails, return a fallback response for testing
       if (action === "categorize") {
-        return new Response(JSON.stringify({
+        return {
           response: "productivity, personal, important, todo, ideas"
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        };
       } else if (action === "summarize") {
-        return new Response(JSON.stringify({
+        return {
           response: "This is a summarized version of your note."
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        };
       } else if (action === "enhance") {
-        return new Response(JSON.stringify({
+        return {
           response: content + " (Enhanced version with better clarity and structure.)"
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        };
       } else {
-        return new Response(JSON.stringify({
+        return {
           response: "Here are some suggestions related to your note."
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        };
       }
     }
   } catch (error) {
     console.error("Error processing AI request:", error);
-    return new Response(
-      JSON.stringify({
-        error: "An error occurred while processing your request",
-        details: error.message,
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return {
+      error: "An error occurred while processing your request",
+      details: error.message,
+    };
   }
-});
+}

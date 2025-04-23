@@ -7,18 +7,13 @@
     // Single Page Apps for GitHub Pages
     // MIT License
     // https://github.com/rafgraph/spa-github-pages
-    // This script takes the current URL and converts the path and query
-    // parameters into a redirect URL, then replaces the current page with the
-    // redirect URL
+    // This script handles SPA routing on GitHub Pages
     var pathSegmentsToKeep = 1;
 
     var l = window.location;
-    var repoName = '/daily-snap-reflector';
-    
     l.replace(
-      l.protocol + '//' + l.hostname + (l.hostname.includes('github.io') ? repoName : '') +
-      (l.port ? ':' + l.port : '') +
-      '/?/' +
+      l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+      l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
       l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
       (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
       l.hash
@@ -26,6 +21,6 @@
   </script>
 </head>
 <body>
-  <h1>Redirecting...</h1>
+  Redirecting...
 </body>
 </html> 

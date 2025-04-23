@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Send, BrainCircuit, AlertCircle, Info, X } from 'lucide-react';
+import { processAIRequest } from '@/services/aiService';
 import { analyzeNotes } from '@/integrations/groq/client';
 import { Note } from '@/types/Note';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -39,7 +40,18 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ notes }) => {
     setLoading(true);
     setError(null);
     try {
-      const result = await analyzeNotes(notes, query);
+      // Use both methods for better reliability
+      // First try the standard approach
+      let result;
+      try {
+        result = await analyzeNotes(notes, query);
+      } catch (groqError) {
+        console.error('Error with direct Groq API:', groqError);
+        // Fall back to our client-side implementation
+        const aiResponse = await processAIRequest('analyze', query);
+        result = aiResponse.response || 'I was unable to analyze your notes at this time. Please try again later.';
+      }
+      
       setResponse(result);
       
       // We'll no longer display API errors to the user

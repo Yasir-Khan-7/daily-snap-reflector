@@ -1,0 +1,30 @@
+{
+    "mcpServers": {
+        "todoist-mcp-server": {
+            "command": "cmd",
+            "args": [
+                "/c",
+                "npx",
+                "-y",
+                "@smithery/cli@latest",
+                "run",
+                "@abhiz123/todoist-mcp-server",
+                "--config",
+                "{\"todoistApiToken\":\"029cf03770d7707dd1e7e5e87ec1d5b1e80b300b\"}"
+            ]
+        },
+        "server-sequential-thinking": {
+            "command": "cmd",
+            "args": [
+                "/c",
+                "npx",
+                "-y",
+                "@smithery/cli@latest",
+                "run",
+                "@smithery-ai/server-sequential-thinking",
+                "--key",
+                "19cdf619-e90b-4d01-9050-987286bf591c"
+            ]
+        }
+    }
+} 

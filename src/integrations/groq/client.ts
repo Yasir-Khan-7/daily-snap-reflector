@@ -1,5 +1,5 @@
 // Direct integration with Groq API with fixed endpoint
-const GROQ_API_KEY = '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'; 
+import { GROQ_API_KEY } from '@/config';
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'; // Updated endpoint
 
 // Generate a fallback response based on the notes (only used if API fails)
